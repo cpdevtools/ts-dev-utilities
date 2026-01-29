@@ -4,4 +4,6 @@
  */
 
 export { discoverProjects } from './discover.js';
-export type { Project, ProjectDiscoveryOptions, PackageJson } from './types.js';
+export type { Project, ProjectInfo, ProjectDiscoveryOptions, PackageJson } from './types.js';
+export { buildDependencyGraph, DependencyGraph } from './dependencyGraph.js';
+export type { DependencyNode } from './dependencyGraph.js';

@@ -15,6 +15,10 @@
     "./json": {
       "types": "./dist/json/index.d.ts",
       "import": "./dist/json/index.js"
+    },
+    "./artifacts": {
+      "types": "./dist/artifacts/index.d.ts",
+      "import": "./dist/artifacts/index.js"
     }
   },
   "files": [
@@ -46,9 +50,10 @@
   },
   "homepage": "https://github.com/cpdevtools/ts-dev-utilities#readme",
   "dependencies": {
-    "globby": "^14.0.2",
     "change-case": "^5.4.4",
-    "jsonc-parser": "^3.3.1"
+    "globby": "^14.0.2",
+    "jsonc-parser": "^3.3.1",
+    "yaml": "^2.8.2"
   },
   "devDependencies": {
     "@types/node": "^20.17.10",

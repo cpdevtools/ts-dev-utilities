@@ -1,6 +1,6 @@
 import { globby } from 'globby';
 import { readFile } from 'node:fs/promises';
-import { dirname } from 'node:path';
+import { dirname, basename } from 'node:path';
 import { parseJson } from '../json/jsonc.js';
 import type { Project, ProjectDiscoveryOptions, PackageJson } from './types.js';
 
@@ -47,6 +47,9 @@ export async function discoverProjects(
         packageJsonPath,
         directory: dirname(packageJsonPath),
         packageJson,
+        name: packageJson.name || basename(dirname(packageJsonPath)),
+        dependencies: packageJson.dependencies,
+        devDependencies: packageJson.devDependencies,
       });
     } catch (error) {
       // Skip invalid package.json files

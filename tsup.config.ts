@@ -5,6 +5,7 @@ export default defineConfig({
     index: 'src/index.ts',
     'project/index': 'src/project/index.ts',
     'json/index': 'src/json/index.ts',
+    'artifacts/index': 'src/artifacts/index.ts',
   },
   format: ['esm'],
   dts: true,

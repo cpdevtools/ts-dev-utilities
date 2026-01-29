@@ -11,7 +11,19 @@ export interface Project {
   
   /** Parsed package.json contents */
   packageJson: PackageJson;
+  
+  /** Project name (from package.json) */
+  name: string;
+  
+  /** Project dependencies */
+  dependencies?: Record<string, string>;
+  
+  /** Project devDependencies */
+  devDependencies?: Record<string, string>;
 }
+
+/** Alias for backward compatibility */
+export type ProjectInfo = Project;
 
 export interface PackageJson {
   name?: string;
@@ -26,7 +38,7 @@ export interface PackageJson {
 }
 
 export interface ProjectDiscoveryOptions {
-  /** Working directory to start search from */
+  /** Working directory to start search from (defaults to process.cwd()) */
   cwd?: string;
   
   /** Glob patterns to find package.json files */
