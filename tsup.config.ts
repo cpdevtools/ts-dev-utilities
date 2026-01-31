@@ -7,7 +7,7 @@ export default defineConfig({
     'json/index': 'src/json/index.ts',
     'artifacts/index': 'src/artifacts/index.ts',
   },
-  format: ['esm'],
+  format: ['cjs'],
   dts: true,
   sourcemap: true,
   clean: true,

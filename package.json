@@ -2,26 +2,23 @@
   "name": "@cpdevtools/ts-dev-utilities",
   "version": "0.0.0",
   "description": "TypeScript development utilities for project discovery, JSON operations, and common tooling",
-  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
-      "import": "./dist/index.js",
       "require": "./dist/index.js"
     },
     "./project": {
       "types": "./dist/project/index.d.ts",
-      "import": "./dist/project/index.js",
       "require": "./dist/project/index.js"
     },
     "./json": {
       "types": "./dist/json/index.d.ts",
-      "import": "./dist/json/index.js",
       "require": "./dist/json/index.js"
     },
     "./artifacts": {
       "types": "./dist/artifacts/index.d.ts",
-      "import": "./dist/artifacts/index.js",
       "require": "./dist/artifacts/index.js"
     }
   },
@@ -34,7 +31,9 @@
     "test:watch": "vitest",
     "lint": "eslint src --ext .ts",
     "format": "prettier --write \"src/**/*.ts\"",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "github.actions.build": "pnpm run build",
+    "github.actions.pack": "pnpm pack --pack-destination . && node scripts/generate-artifact.js"
   },
   "keywords": [
     "typescript",
