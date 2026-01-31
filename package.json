@@ -6,19 +6,23 @@
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
-      "import": "./dist/index.js"
+      "import": "./dist/index.js",
+      "require": "./dist/index.js"
     },
     "./project": {
       "types": "./dist/project/index.d.ts",
-      "import": "./dist/project/index.js"
+      "import": "./dist/project/index.js",
+      "require": "./dist/project/index.js"
     },
     "./json": {
       "types": "./dist/json/index.d.ts",
-      "import": "./dist/json/index.js"
+      "import": "./dist/json/index.js",
+      "require": "./dist/json/index.js"
     },
     "./artifacts": {
       "types": "./dist/artifacts/index.d.ts",
-      "import": "./dist/artifacts/index.js"
+      "import": "./dist/artifacts/index.js",
+      "require": "./dist/artifacts/index.js"
     }
   },
   "files": [
