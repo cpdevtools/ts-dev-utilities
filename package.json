@@ -1,6 +1,6 @@
 {
   "name": "@cpdevtools/ts-dev-utilities",
-  "version": "0.0.0-DEFAULT",
+  "version": "0.0.0",
   "description": "TypeScript development utilities for project discovery, JSON operations, and common tooling",
   "type": "module",
   "exports": {
