@@ -9,10 +9,8 @@ async function generateArtifact() {
   
   const version = process.env.PROJECT_VERSION || pkg.version;
   
-  // Ensure PROJECT_NAME is set (filesystem-safe name without @ and /)
-  if (!process.env.PROJECT_NAME) {
-    process.env.PROJECT_NAME = pkg.name.replace(/^@/, '').replace(/\//g, '-');
-  }
+  // Always set PROJECT_NAME to filesystem-safe name (remove @ and replace / with -)
+  process.env.PROJECT_NAME = pkg.name.replace(/^@/, '').replace(/\//g, '-');
   
   // Ensure ARTIFACT_OUTPUT_DIR is set
   if (!process.env.ARTIFACT_OUTPUT_DIR) {
