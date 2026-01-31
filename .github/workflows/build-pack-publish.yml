@@ -35,7 +35,7 @@ jobs:
         uses: cpdevtools/git-flow/actions/build-pack@main
         with:
           pr-number: ${{ github.event.pull_request.number }}
-          github-token: ${{ secrets.GITHUB_TOKEN }}
+          token: ${{ secrets.GITHUB_TOKEN }}
 
   publish-release:
     needs: build-pack
@@ -58,6 +58,9 @@ jobs:
       
       - name: Publish Release
         uses: cpdevtools/git-flow/actions/publish-release@main
+        with:
+          pr-number: ${{ github.event.pull_request.number }}
+          token: ${{ secrets.GITHUB_TOKEN }}
         with:
           pr-number: ${{ github.event.pull_request.number }}
           github-token: ${{ secrets.GITHUB_TOKEN }}
