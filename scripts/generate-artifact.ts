@@ -19,6 +19,8 @@ async function generateArtifact() {
   
   // Find the tarball that was created by pnpm pack
   const tarballName = `${process.env.PROJECT_NAME}-${version}.tgz`;
+  // Path should be relative to project root (includes ARTIFACT_OUTPUT_DIR)
+  const tarballPath = join(process.env.ARTIFACT_OUTPUT_DIR, tarballName);
   
   await writeArtifact({
     project: pkg.name,
@@ -26,7 +28,7 @@ async function generateArtifact() {
       {
         type: 'npm',
         name: pkg.name,
-        path: tarballName,
+        path: tarballPath,
         registries: ['github-npm']
       }
     ]
