@@ -8,8 +8,16 @@ async function generateArtifact() {
     const pkgPath = (0, path_1.join)(process.cwd(), 'package.json');
     const pkg = JSON.parse(await (0, promises_1.readFile)(pkgPath, 'utf-8'));
     const version = process.env.PROJECT_VERSION || pkg.version;
+    // Ensure PROJECT_NAME is set (filesystem-safe name without @ and /)
+    if (!process.env.PROJECT_NAME) {
+        process.env.PROJECT_NAME = pkg.name.replace(/^@/, '').replace(/\//g, '-');
+    }
+    // Ensure ARTIFACT_OUTPUT_DIR is set
+    if (!process.env.ARTIFACT_OUTPUT_DIR) {
+        process.env.ARTIFACT_OUTPUT_DIR = '.artifacts';
+    }
     // Find the tarball that was created by pnpm pack
-    const tarballName = `cpdevtools-ts-dev-utilities-${version}.tgz`;
+    const tarballName = `${process.env.PROJECT_NAME}-${version}.tgz`;
     await (0, index_js_1.writeArtifact)({
         project: pkg.name,
         artifacts: [
