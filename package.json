@@ -1,6 +1,6 @@
 {
   "name": "@cpdevtools/ts-dev-utilities",
-  "version": "0.0.0",
+  "version": "0.0.0-DEFAULT",
   "description": "TypeScript development utilities for project discovery, JSON operations, and common tooling",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
