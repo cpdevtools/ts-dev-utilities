@@ -19,8 +19,10 @@ async function generateArtifact() {
   
   // Find the tarball that was created by pnpm pack
   const tarballName = `${process.env.PROJECT_NAME}-${version}.tgz`;
-  // Path should be relative to project root (includes ARTIFACT_OUTPUT_DIR)
-  const tarballPath = join(process.env.ARTIFACT_OUTPUT_DIR, tarballName);
+  // Path should be relative to project root
+  // Extract just the directory name from ARTIFACT_OUTPUT_DIR (might be absolute or relative)
+  const artifactDir = process.env.ARTIFACT_OUTPUT_DIR?.split('/').pop() || '.artifacts';
+  const tarballPath = join(artifactDir, tarballName);
   
   await writeArtifact({
     project: pkg.name,

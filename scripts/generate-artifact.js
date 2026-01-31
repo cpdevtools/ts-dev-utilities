@@ -42,15 +42,16 @@ var promises_1 = require("fs/promises");
 var path_1 = require("path");
 function generateArtifact() {
     return __awaiter(this, void 0, void 0, function () {
-        var pkgPath, pkg, _a, _b, version, tarballName, tarballPath;
-        return __generator(this, function (_c) {
-            switch (_c.label) {
+        var pkgPath, pkg, _a, _b, version, tarballName, artifactDir, tarballPath;
+        var _c;
+        return __generator(this, function (_d) {
+            switch (_d.label) {
                 case 0:
                     pkgPath = (0, path_1.join)(process.cwd(), 'package.json');
                     _b = (_a = JSON).parse;
                     return [4 /*yield*/, (0, promises_1.readFile)(pkgPath, 'utf-8')];
                 case 1:
-                    pkg = _b.apply(_a, [_c.sent()]);
+                    pkg = _b.apply(_a, [_d.sent()]);
                     version = process.env.PROJECT_VERSION || pkg.version;
                     // Always set PROJECT_NAME to filesystem-safe name (remove @ and replace / with -)
                     process.env.PROJECT_NAME = pkg.name.replace(/^@/, '').replace(/\//g, '-');
@@ -59,7 +60,8 @@ function generateArtifact() {
                         process.env.ARTIFACT_OUTPUT_DIR = '.artifacts';
                     }
                     tarballName = "".concat(process.env.PROJECT_NAME, "-").concat(version, ".tgz");
-                    tarballPath = (0, path_1.join)(process.env.ARTIFACT_OUTPUT_DIR, tarballName);
+                    artifactDir = ((_c = process.env.ARTIFACT_OUTPUT_DIR) === null || _c === void 0 ? void 0 : _c.split('/').pop()) || '.artifacts';
+                    tarballPath = (0, path_1.join)(artifactDir, tarballName);
                     return [4 /*yield*/, (0, index_js_1.writeArtifact)({
                             project: pkg.name,
                             artifacts: [
@@ -72,7 +74,7 @@ function generateArtifact() {
                             ]
                         })];
                 case 2:
-                    _c.sent();
+                    _d.sent();
                     console.log("\u2705 Generated artifact descriptor for ".concat(pkg.name, "@").concat(version));
                     return [2 /*return*/];
             }
