@@ -7,19 +7,19 @@
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
-      "require": "./dist/index.js"
+      "default": "./dist/index.js"
     },
     "./project": {
       "types": "./dist/project/index.d.ts",
-      "require": "./dist/project/index.js"
+      "default": "./dist/project/index.js"
     },
     "./json": {
       "types": "./dist/json/index.d.ts",
-      "require": "./dist/json/index.js"
+      "default": "./dist/json/index.js"
     },
     "./artifacts": {
       "types": "./dist/artifacts/index.d.ts",
-      "require": "./dist/artifacts/index.js"
+      "default": "./dist/artifacts/index.js"
     }
   },
   "files": [
