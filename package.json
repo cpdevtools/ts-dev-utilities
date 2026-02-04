@@ -32,6 +32,9 @@
     "lint": "eslint src --ext .ts",
     "format": "prettier --write \"src/**/*.ts\"",
     "typecheck": "tsc --noEmit",
+    "syncpack.fix": "syncpack fix-mismatches",
+    "syncpack.format": "syncpack format",
+    "syncpack.list": "syncpack list-mismatches",
     "github.actions.build": "pnpm run build",
     "github.actions.pack": "pnpm pack"
   },
@@ -64,6 +67,7 @@
     "@typescript-eslint/parser": "^8.20.0",
     "eslint": "^9.18.0",
     "prettier": "^3.4.2",
+    "syncpack": "^13.0.0",
     "tsup": "^8.3.5",
     "typescript": "^5.7.3",
     "vitest": "^2.1.8"
