@@ -1,0 +1,7 @@
+project: ${PACKAGE_NAME}
+artifacts:
+  - type: npm
+    name: ${PACKAGE_NAME}
+    path: ${TARBALL_PATH}
+    registries:
+      - github-packages
