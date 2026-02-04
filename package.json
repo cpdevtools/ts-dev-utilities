@@ -32,8 +32,7 @@
     "lint": "eslint src --ext .ts",
     "format": "prettier --write \"src/**/*.ts\"",
     "typecheck": "tsc --noEmit",
-    "github.actions.build": "pnpm run build",
-    "github.actions.pack": "pnpm pack --pack-destination $ARTIFACT_OUTPUT_DIR && node scripts/generate-artifact.js"
+    "github.actions.build": "pnpm run build"
   },
   "keywords": [
     "typescript",
