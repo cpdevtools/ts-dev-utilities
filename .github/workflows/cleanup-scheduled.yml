@@ -18,9 +18,6 @@ jobs:
   cleanup-scheduled:
     if: github.event_name == 'schedule'
     uses: cpdevtools/git-flow/.github/workflows/cleanup-old-builds.yml@main
-    with:
-      days_old: 14
-      dry_run: false
     secrets:
       token: ${{ secrets.GITHUB_TOKEN }}
   
