@@ -20,7 +20,14 @@
     "./artifacts": {
       "types": "./dist/artifacts/index.d.ts",
       "default": "./dist/artifacts/index.js"
+    },
+    "./runner": {
+      "types": "./dist/runner/index.d.ts",
+      "default": "./dist/runner/index.js"
     }
+  },
+  "bin": {
+    "devutil": "./dist/cli/bin.js"
   },
   "files": [
     "dist"
