@@ -29,6 +29,22 @@ export interface RunOptions {
   /** Maximum bytes of combined stdout+stderr to capture per task. Defaults to 1_000_000 (1 MB). */
   maxOutputBytes?: number;
 
+  /**
+   * Called after a project becomes ready (all its workspace dependencies have
+   * passed) and before its script(s) are run.
+   * If this hook throws, the project is marked as failed and afterTask is NOT called.
+   */
+  beforeTask?: (project: Project) => Promise<void> | void;
+
+  /**
+   * Called after the project's script(s) have finished (passed, failed, or
+   * cancelled) and its final result has been recorded.
+   * Not called when the task had no matching scripts, or was skipped/cancelled
+   * before starting.
+   * If this hook throws, the result is overridden to 'failed'.
+   */
+  afterTask?: (project: Project, result: TaskResult) => Promise<void> | void;
+
   // ----------------------------------------------------------------
   // Test hooks — not for production use
   // ----------------------------------------------------------------

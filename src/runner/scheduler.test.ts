@@ -351,3 +351,152 @@ describe('runScripts: empty workspace', () => {
     expect(summary.noScript).toHaveLength(0);
   });
 });
+
+// ----------------------------------------------------------------
+// beforeTask / afterTask hooks
+// ----------------------------------------------------------------
+
+describe('runScripts: beforeTask hook', () => {
+  it('calls beforeTask with the project before the script runs', async () => {
+    const projects = [makeProject('pkg-a')];
+    const calls: string[] = [];
+
+    const execFn: MockExecFn = async (_s, _c, env) => {
+      calls.push(`exec:${env.PROJECT_NAME}`);
+      return { exitCode: 0, output: '', truncated: false };
+    };
+
+    const summary = await runScripts(
+      baseOptions(projects, execFn, {
+        beforeTask: (p) => { calls.push(`before:${p.name}`); },
+      }),
+    );
+
+    expect(summary.passed).toHaveLength(1);
+    expect(calls).toEqual(['before:pkg-a', 'exec:pkg-a']);
+  });
+
+  it('beforeTask failure marks project failed without running scripts', async () => {
+    const projects = [makeProject('pkg-a')];
+    let scriptRan = false;
+
+    const execFn: MockExecFn = async () => {
+      scriptRan = true;
+      return { exitCode: 0, output: '', truncated: false };
+    };
+
+    const summary = await runScripts(
+      baseOptions(projects, execFn, {
+        beforeTask: () => { throw new Error('setup failed'); },
+      }),
+    );
+
+    expect(summary.failed).toHaveLength(1);
+    expect(summary.failed[0].project).toBe('pkg-a');
+    expect(summary.failed[0].output).toBe('setup failed');
+    expect(scriptRan).toBe(false);
+  });
+
+  it('beforeTask failure skips dependents', async () => {
+    const projects = [makeProject('pkg-a'), makeProject('pkg-b', ['pkg-a'])];
+
+    const execFn: MockExecFn = async () => ({ exitCode: 0, output: '', truncated: false });
+
+    const summary = await runScripts(
+      baseOptions(projects, execFn, {
+        beforeTask: (p) => {
+          if (p.name === 'pkg-a') throw new Error('before failed');
+        },
+      }),
+    );
+
+    expect(summary.failed.map((t) => t.project)).toContain('pkg-a');
+    expect(summary.skipped.map((t) => t.project)).toContain('pkg-b');
+  });
+});
+
+describe('runScripts: afterTask hook', () => {
+  it('calls afterTask with project and passed result on success', async () => {
+    const projects = [makeProject('pkg-a')];
+    let hookProject: string | undefined;
+    let hookState: string | undefined;
+
+    const execFn: MockExecFn = async () => ({ exitCode: 0, output: '', truncated: false });
+
+    const summary = await runScripts(
+      baseOptions(projects, execFn, {
+        afterTask: (p, r) => {
+          hookProject = p.name;
+          hookState = r.state;
+        },
+      }),
+    );
+
+    expect(summary.passed).toHaveLength(1);
+    expect(hookProject).toBe('pkg-a');
+    expect(hookState).toBe('passed');
+  });
+
+  it('calls afterTask with failed result when script fails', async () => {
+    const projects = [makeProject('pkg-a')];
+    let hookState: string | undefined;
+
+    const execFn: MockExecFn = async () => ({ exitCode: 1, output: 'oops', truncated: false });
+
+    const summary = await runScripts(
+      baseOptions(projects, execFn, {
+        afterTask: (_p, r) => { hookState = r.state; },
+      }),
+    );
+
+    expect(summary.failed).toHaveLength(1);
+    expect(hookState).toBe('failed');
+  });
+
+  it('afterTask throwing overrides result to failed', async () => {
+    const projects = [makeProject('pkg-a')];
+
+    const execFn: MockExecFn = async () => ({ exitCode: 0, output: '', truncated: false });
+
+    const summary = await runScripts(
+      baseOptions(projects, execFn, {
+        afterTask: () => { throw new Error('post failed'); },
+      }),
+    );
+
+    expect(summary.failed).toHaveLength(1);
+    expect(summary.failed[0].project).toBe('pkg-a');
+    expect(summary.failed[0].output).toBe('post failed');
+  });
+
+  it('afterTask is NOT called when beforeTask throws', async () => {
+    const projects = [makeProject('pkg-a')];
+    let afterCalled = false;
+
+    const execFn: MockExecFn = async () => ({ exitCode: 0, output: '', truncated: false });
+
+    await runScripts(
+      baseOptions(projects, execFn, {
+        beforeTask: () => { throw new Error('before failed'); },
+        afterTask: () => { afterCalled = true; },
+      }),
+    );
+
+    expect(afterCalled).toBe(false);
+  });
+
+  it('afterTask is NOT called for no-script tasks', async () => {
+    const projects = [makeProject('pkg-a', [], {})]; // no scripts
+    let afterCalled = false;
+
+    const execFn: MockExecFn = async () => ({ exitCode: 0, output: '', truncated: false });
+
+    await runScripts(
+      baseOptions(projects, execFn, {
+        afterTask: () => { afterCalled = true; },
+      }),
+    );
+
+    expect(afterCalled).toBe(false);
+  });
+});
