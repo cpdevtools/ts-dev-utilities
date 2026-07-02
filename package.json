@@ -49,7 +49,6 @@
     "typescript",
     "utilities",
     "project-discovery",
-    "json",
     "development"
   ],
   "author": "CPDevTools",
