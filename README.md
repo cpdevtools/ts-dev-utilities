@@ -62,12 +62,26 @@ devutil graph
 Find and analyze projects in a workspace:
 
 ```typescript
-import { discoverProjects } from '@cpdevtools/ts-dev-utilities/project';
+import { discoverProjects, buildDependencyGraph } from '@cpdevtools/ts-dev-utilities/project';
 
 const projects = await discoverProjects({
   cwd: process.cwd(),
   patterns: ['packages/*/package.json'],
 });
+
+// Build a dependency graph from the discovered projects
+const graph = buildDependencyGraph(projects);
+
+for (const node of graph.getAllNodes()) {
+  console.log(`${node.name} depends on: ${[...node.dependencies].join(', ') || 'nothing'}`);
+}
+
+// Detect cycles before processing
+const cycle = graph.detectCycle();
+if (cycle) throw new Error(`Cycle: ${cycle.join(' → ')}`);
+
+// Topological wave ordering (for batch-style processing)
+const batches = graph.getTopologicalBatches();
 ```
 
 ### JSON Utilities
@@ -94,19 +108,16 @@ import * as changeCase from '@cpdevtools/ts-dev-utilities';
 
 ```bash
 # Install dependencies
-npm install
+pnpm install
 
 # Run tests
-npm test
+pnpm test
 
 # Build
-npm run build
+pnpm run build
 
-# Lint
-npm run lint
-
-# Format
-npm run format
+# Type-check
+pnpm run typecheck
 ```
 
 ## License
