@@ -20,5 +20,5 @@ jobs:
         with:
           branch: ${{ github.ref_name }}
           token: ${{ secrets.GITHUB_TOKEN }}
-          versions-file: .github/versions.yml
+          versions-file: .publish/versions.yml
           run-number: ${{ github.run_number }}
