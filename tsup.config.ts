@@ -17,4 +17,5 @@ export default defineConfig({
   splitting: false,
   minify: false,
   target: 'node20',
+  noExternal: ['globby'],
 });
