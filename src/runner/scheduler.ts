@@ -24,6 +24,8 @@ export async function runScripts(options: RunOptions): Promise<RunSummary> {
     env = {},
     missingScript = 'skip',
     maxOutputBytes = DEFAULT_MAX_OUTPUT_BYTES,
+    beforeTask,
+    afterTask,
     _discover = discoverProjects,
     _exec = execScript,
   } = options;
@@ -72,6 +74,17 @@ export async function runScripts(options: RunOptions): Promise<RunSummary> {
     truncated?: boolean,
   ): TaskResult {
     return { project: name, projectDir: dir, scripts, state, durationMs, output, truncated };
+  }
+
+  async function finalize(name: string, dir: string): Promise<void> {
+    if (!afterTask) return;
+    const result = taskResults.get(name)!;
+    try {
+      await afterTask(graph.getNode(name)!.project, result);
+    } catch (err) {
+      states.set(name, 'failed');
+      taskResults.set(name, makeResult(name, dir, 'failed', result.durationMs, (err as Error).message));
+    }
   }
 
   function getReadyNames(): string[] {
@@ -157,6 +170,20 @@ export async function runScripts(options: RunOptions): Promise<RunSummary> {
       PROJECT_CWD: node.project.directory,
     };
 
+    // beforeTask hook — runs before any script; failure marks task failed
+    if (beforeTask) {
+      try {
+        await beforeTask(node.project);
+      } catch (err) {
+        states.set(name, 'failed');
+        taskResults.set(
+          name,
+          makeResult(name, node.project.directory, 'failed', 0, (err as Error).message),
+        );
+        return; // afterTask is NOT called — scripts never ran
+      }
+    }
+
     let combinedOutput = '';
     let anyTruncated = false;
 
@@ -174,6 +201,7 @@ export async function runScripts(options: RunOptions): Promise<RunSummary> {
             anyTruncated || undefined,
           ),
         );
+        await finalize(name, node.project.directory);
         return;
       }
 
@@ -193,6 +221,7 @@ export async function runScripts(options: RunOptions): Promise<RunSummary> {
             combinedOutput || (err as Error).message || undefined,
           ),
         );
+        await finalize(name, node.project.directory);
         return;
       }
 
@@ -212,6 +241,7 @@ export async function runScripts(options: RunOptions): Promise<RunSummary> {
             anyTruncated || undefined,
           ),
         );
+        await finalize(name, node.project.directory);
         return;
       }
 
@@ -228,12 +258,14 @@ export async function runScripts(options: RunOptions): Promise<RunSummary> {
             anyTruncated || undefined,
           ),
         );
+        await finalize(name, node.project.directory);
         return;
       }
     }
 
     states.set(name, 'passed');
     taskResults.set(name, makeResult(name, node.project.directory, 'passed', Date.now() - startTime));
+    await finalize(name, node.project.directory);
   }
 
   // ----------------------------------------------------------------
