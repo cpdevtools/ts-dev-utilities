@@ -7,7 +7,7 @@ export default defineConfig({
     'json/index': 'src/json/index.ts',
     'artifacts/index': 'src/artifacts/index.ts',
     'runner/index': 'src/runner/index.ts',
-    'cli/bin': 'src/cli/bin.ts',
+    'dep-versions/index': 'src/dep-versions/index.ts',
   },
   format: ['cjs'],
   dts: true,
@@ -16,6 +16,6 @@ export default defineConfig({
   treeshake: true,
   splitting: false,
   minify: false,
-  target: 'node20',
+  target: 'node24',
   noExternal: ['globby'],
 });

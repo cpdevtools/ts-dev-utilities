@@ -1,71 +1,40 @@
 {
-  "name": "@cpdevtools/ts-dev-utilities",
+  "name": "@cpdevtools/ts-dev-utilities-workspace",
   "version": "0.0.0-MAIN",
-  "description": "TypeScript development utilities for project discovery, JSON operations, and common tooling",
-  "main": "./dist/index.js",
-  "types": "./dist/index.d.ts",
-  "exports": {
-    ".": {
-      "types": "./dist/index.d.ts",
-      "default": "./dist/index.js"
-    },
-    "./project": {
-      "types": "./dist/project/index.d.ts",
-      "default": "./dist/project/index.js"
-    },
-    "./json": {
-      "types": "./dist/json/index.d.ts",
-      "default": "./dist/json/index.js"
-    },
-    "./artifacts": {
-      "types": "./dist/artifacts/index.d.ts",
-      "default": "./dist/artifacts/index.js"
-    },
-    "./runner": {
-      "types": "./dist/runner/index.d.ts",
-      "default": "./dist/runner/index.js"
-    }
-  },
-  "bin": {
-    "devutil": "./dist/cli/bin.js"
-  },
-  "files": [
-    "dist"
-  ],
+  "private": true,
+  "description": "TypeScript development utilities — workspace root",
   "scripts": {
-    "build": "tsup",
-    "test": "vitest run",
-    "test:watch": "vitest",
-    "lint": "eslint src --ext .ts",
-    "format": "prettier --write \"src/**/*.ts\"",
-    "typecheck": "tsc --noEmit",
+    "build": "wireit",
+    "test": "wireit",
+    "typecheck": "wireit",
+    "lint": "wireit",
+    "format": "prettier --write \"**/*.{ts,js,json,md,yml}\" --ignore-path .gitignore",
     "syncpack.fix": "syncpack fix-mismatches",
     "syncpack.format": "syncpack format",
     "syncpack.list": "syncpack list-mismatches",
-    "github.actions.build": "pnpm run build",
-    "github.actions.pack": "pnpm pack"
+    "dep-versions.check": "devutil dep-versions check .publish/deps.yml",
+    "dep-versions.fix": "devutil dep-versions fix .publish/deps.yml"
   },
-  "keywords": [
-    "typescript",
-    "utilities",
-    "project-discovery",
-    "development"
-  ],
+  "wireit": {
+    "build": {
+      "dependencies": ["./packages/ts-dev-utilities:build", "./packages/cli:build"]
+    },
+    "test": {
+      "dependencies": ["./packages/ts-dev-utilities:test"]
+    },
+    "typecheck": {
+      "dependencies": ["./packages/ts-dev-utilities:typecheck", "./packages/cli:typecheck"]
+    },
+    "lint": {
+      "dependencies": ["./packages/ts-dev-utilities:lint"]
+    }
+  },
+  "keywords": [],
   "author": "CPDevTools",
   "license": "MIT",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/cpdevtools/ts-dev-utilities.git"
-  },
-  "bugs": {
-    "url": "https://github.com/cpdevtools/ts-dev-utilities/issues"
-  },
-  "homepage": "https://github.com/cpdevtools/ts-dev-utilities#readme",
-  "dependencies": {
-    "change-case": "^5.4.4",
-    "globby": "^14.0.2",
-    "jsonc-parser": "^3.3.1",
-    "yaml": "^2.8.2"
   },
   "devDependencies": {
     "@types/node": "^20.17.10",
@@ -74,9 +43,8 @@
     "eslint": "^9.18.0",
     "prettier": "^3.4.2",
     "syncpack": "^13.0.0",
-    "tsup": "^8.3.5",
     "typescript": "^5.7.3",
-    "vitest": "^2.1.8"
+    "wireit": "^0.14.13"
   },
   "engines": {
     "node": ">=24"

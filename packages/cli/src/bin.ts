@@ -1,8 +1,9 @@
 #!/usr/bin/env node
-import { runScripts } from '../runner/index.js';
-import { discoverProjects } from '../project/discover.js';
-import { buildDependencyGraph } from '../project/dependencyGraph.js';
-import type { RunSummary } from '../runner/types.js';
+import { runScripts } from '@cpdevtools/ts-dev-utilities/runner';
+import { discoverProjects, buildDependencyGraph } from '@cpdevtools/ts-dev-utilities/project';
+import { checkDepVersions, fixDepVersions } from '@cpdevtools/ts-dev-utilities/dep-versions';
+import type { RunSummary } from '@cpdevtools/ts-dev-utilities/runner';
+import type { DepChange } from '@cpdevtools/ts-dev-utilities/dep-versions';
 
 // ----------------------------------------------------------------
 // Argument parser
@@ -88,6 +89,56 @@ async function cmdDiscover(args: string[]): Promise<void> {
   console.log(`\n${projects.length} project(s) found`);
 }
 
+async function cmdDepVersions(args: string[]): Promise<void> {
+  const [subcommand, file, ...rest] = args;
+
+  if (!subcommand || !file) {
+    console.error('Usage: devutil dep-versions <check|fix> <file> [--cwd <path>]');
+    process.exit(1);
+  }
+
+  const { flags } = parseArgs(rest);
+  const cwd = (flags['cwd'] as string | undefined) ?? process.cwd();
+
+  let changes: DepChange[];
+
+  if (subcommand === 'check') {
+    changes = await checkDepVersions(file, cwd);
+    printDepChanges(changes, false);
+    if (changes.length > 0) process.exit(1);
+  } else if (subcommand === 'fix') {
+    changes = await fixDepVersions(file, cwd);
+    printDepChanges(changes, true);
+  } else {
+    console.error(`Unknown subcommand: ${subcommand}. Use 'check' or 'fix'.`);
+    process.exit(1);
+  }
+}
+
+function printDepChanges(changes: DepChange[], fixed: boolean): void {
+  if (changes.length === 0) {
+    console.log('✅ All dep versions are up to date');
+    return;
+  }
+
+  const byFile = new Map<string, DepChange[]>();
+  for (const c of changes) {
+    if (!byFile.has(c.file)) byFile.set(c.file, []);
+    byFile.get(c.file)!.push(c);
+  }
+
+  for (const [file, fileChanges] of byFile) {
+    console.log(`  ${file}`);
+    for (const c of fileChanges) {
+      console.log(`    ${c.name}: ${c.from} → ${c.to}`);
+    }
+  }
+
+  const verb = fixed ? 'updated' : 'out of date';
+  const hint = fixed ? '' : "\n  Run 'devutil dep-versions fix <file>' to apply";
+  console.log(`\n${changes.length} version(s) ${verb}${hint}`);
+}
+
 async function cmdGraph(args: string[]): Promise<void> {
   const { flags } = parseArgs(args);
   const cwd = (flags['cwd'] as string | undefined) ?? process.cwd();
@@ -119,9 +170,11 @@ function printHelp(): void {
 devutil — workspace script runner and inspector
 
 Commands:
-  run <script...>    Run scripts across all workspace projects, dependency-ordered
-  discover           List all projects in the workspace
-  graph              Print the workspace dependency graph
+  run <script...>               Run scripts across all workspace projects, dependency-ordered
+  discover                      List all projects in the workspace
+  graph                         Print the workspace dependency graph
+  dep-versions check <file>     Report version drift against a deps YAML file (exits 1 if drift found)
+  dep-versions fix <file>       Apply versions from a deps YAML file to all matching project files
 
 Options (run):
   --fail-fast              Stop on first failure, cancel in-flight tasks
@@ -149,7 +202,6 @@ Examples:
 // ----------------------------------------------------------------
 
 function printSummary(summary: RunSummary): void {
-  // Inline output for each failed task
   for (const task of summary.failed) {
     const header = `\n${'─'.repeat(60)}\n❌  FAILED: ${task.project}\n${'─'.repeat(60)}`;
     console.error(header);
@@ -161,7 +213,6 @@ function printSummary(summary: RunSummary): void {
     }
   }
 
-  // Counts
   console.log('\n' + [
     `✅  Passed:    ${summary.passed.length}`,
     `❌  Failed:    ${summary.failed.length}`,
@@ -184,9 +235,10 @@ const [, , command, ...rest] = process.argv;
   }
 
   switch (command) {
-    case 'run':      await cmdRun(rest);      break;
-    case 'discover': await cmdDiscover(rest); break;
-    case 'graph':    await cmdGraph(rest);    break;
+    case 'run':          await cmdRun(rest);         break;
+    case 'discover':     await cmdDiscover(rest);    break;
+    case 'graph':        await cmdGraph(rest);       break;
+    case 'dep-versions': await cmdDepVersions(rest); break;
     default:
       console.error(`Unknown command: ${command}\nRun 'devutil help' for usage.`);
       process.exit(1);
