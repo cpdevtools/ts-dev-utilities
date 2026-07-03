@@ -15,7 +15,11 @@ function escapeRegex(s: string): string {
  *   Include="Name" Version="x"
  *   Version="x" Include="Name"
  */
-function rewriteVersion(content: string, name: string, targetVersion: string): { content: string; changes: number } {
+function rewriteVersion(
+  content: string,
+  name: string,
+  targetVersion: string,
+): { content: string; changes: number } {
   const esc = escapeRegex(name);
   let changes = 0;
 
@@ -30,14 +34,29 @@ function rewriteVersion(content: string, name: string, targetVersion: string): {
     'gi',
   );
 
-  content = content.replace(r1, (_m, pre) => { changes++; return `${pre}Version="${targetVersion}"`; });
-  content = content.replace(r2, (_m, pre, post) => { changes++; return `${pre}Version="${targetVersion}"${post}`; });
+  content = content.replace(r1, (_m, pre) => {
+    changes++;
+    return `${pre}Version="${targetVersion}"`;
+  });
+  content = content.replace(r2, (_m, pre, post) => {
+    changes++;
+    return `${pre}Version="${targetVersion}"${post}`;
+  });
 
   return { content, changes };
 }
 
-async function scan(cwd: string, deps: Record<string, string>, write: boolean): Promise<DepChange[]> {
-  const files = await globby(GLOB_PATTERNS, { cwd, absolute: true, ignore: IGNORE, followSymbolicLinks: false });
+async function scan(
+  cwd: string,
+  deps: Record<string, string>,
+  write: boolean,
+): Promise<DepChange[]> {
+  const files = await globby(GLOB_PATTERNS, {
+    cwd,
+    absolute: true,
+    ignore: IGNORE,
+    followSymbolicLinks: false,
+  });
   const allChanges: DepChange[] = [];
 
   for (const file of files) {
@@ -49,7 +68,7 @@ async function scan(cwd: string, deps: Record<string, string>, write: boolean): 
       const esc = escapeRegex(name);
       const findCurrent = new RegExp(
         `<(?:PackageVersion|PackageReference)[^>]*Include=["']${esc}["'][^>]*Version=["']([^"']+)["']|` +
-        `<(?:PackageVersion|PackageReference)[^>]*Version=["']([^"']+)["'][^>]*Include=["']${esc}["']`,
+          `<(?:PackageVersion|PackageReference)[^>]*Version=["']([^"']+)["'][^>]*Include=["']${esc}["']`,
         'i',
       );
       const match = findCurrent.exec(content);
@@ -78,5 +97,5 @@ async function scan(cwd: string, deps: Record<string, string>, write: boolean): 
 export const dotnetHandler: DepVersionHandler = {
   name: 'dotnet',
   check: (cwd, deps) => scan(cwd, deps, false),
-  fix:   (cwd, deps) => scan(cwd, deps, true),
+  fix: (cwd, deps) => scan(cwd, deps, true),
 };

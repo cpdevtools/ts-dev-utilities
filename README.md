@@ -20,9 +20,9 @@ import { runScripts } from '@cpdevtools/ts-dev-utilities/runner';
 const summary = await runScripts({
   scripts: ['github.actions.build', 'github.actions.test'],
   cwd: process.cwd(),
-  failFast: false,      // keep-going (default); true = stop on first failure
-  concurrency: 4,       // max parallel tasks; omit for unlimited
-  missingScript: 'skip' // 'skip' (default) or 'error'
+  failFast: false, // keep-going (default); true = stop on first failure
+  concurrency: 4, // max parallel tasks; omit for unlimited
+  missingScript: 'skip', // 'skip' (default) or 'error'
 });
 
 console.log(`passed: ${summary.passed.length}, failed: ${summary.failed.length}`);

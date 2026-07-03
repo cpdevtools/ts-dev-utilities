@@ -65,12 +65,15 @@ describe('dotnetHandler', () => {
 
   it('fix: rewrites PackageReference in .csproj', async () => {
     const csprojPath = join(dir, 'MyApp.csproj');
-    await writeFile(csprojPath, `
+    await writeFile(
+      csprojPath,
+      `
 <Project Sdk="Microsoft.NET.Sdk">
   <ItemGroup>
     <PackageReference Include="Newtonsoft.Json" Version="12.0.0" />
   </ItemGroup>
-</Project>`);
+</Project>`,
+    );
 
     const changes = await dotnetHandler.fix(dir, { 'Newtonsoft.Json': '13.0.3' });
 

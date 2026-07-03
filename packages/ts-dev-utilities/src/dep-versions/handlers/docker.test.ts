@@ -53,11 +53,14 @@ describe('dockerHandler', () => {
 
   it('fix: rewrites image tag in docker-compose.yml', async () => {
     const composePath = join(dir, 'docker-compose.yml');
-    await writeFile(composePath, `
+    await writeFile(
+      composePath,
+      `
 services:
   app:
     image: node:20
-`);
+`,
+    );
 
     const changes = await dockerHandler.fix(dir, { node: '24' });
 
@@ -71,6 +74,8 @@ services:
     const changes = await dockerHandler.fix(dir, { 'mcr.microsoft.com/dotnet/sdk': '9.0' });
 
     expect(changes).toHaveLength(1);
-    expect(await readFile(join(dir, 'Dockerfile'), 'utf-8')).toContain('FROM mcr.microsoft.com/dotnet/sdk:9.0');
+    expect(await readFile(join(dir, 'Dockerfile'), 'utf-8')).toContain(
+      'FROM mcr.microsoft.com/dotnet/sdk:9.0',
+    );
   });
 });

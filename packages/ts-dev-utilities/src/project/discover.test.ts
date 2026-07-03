@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { mkdir, writeFile, rm, symlink } from 'node:fs/promises';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
@@ -22,7 +22,7 @@ describe('discoverProjects', () => {
     // Create test structure
     await mkdir(join(testDir, 'packages/pkg1'), { recursive: true });
     await mkdir(join(testDir, 'packages/pkg2'), { recursive: true });
-    
+
     await writeFile(
       join(testDir, 'packages/pkg1/package.json'),
       JSON.stringify({ name: 'pkg1', version: '1.0.0' }),
@@ -67,10 +67,7 @@ describe('discoverProjects', () => {
       join(testDir, 'node_modules/dep/package.json'),
       JSON.stringify({ name: 'dep' }),
     );
-    await writeFile(
-      join(testDir, 'package.json'),
-      JSON.stringify({ name: 'root' }),
-    );
+    await writeFile(join(testDir, 'package.json'), JSON.stringify({ name: 'root' }));
 
     const projects = await discoverProjects({
       cwd: testDir,
@@ -86,10 +83,7 @@ describe('discoverProjects', () => {
       join(testDir, '.pnpm-prod/dep/package.json'),
       JSON.stringify({ name: 'prod-dep' }),
     );
-    await writeFile(
-      join(testDir, 'package.json'),
-      JSON.stringify({ name: 'root' }),
-    );
+    await writeFile(join(testDir, 'package.json'), JSON.stringify({ name: 'root' }));
 
     const projects = await discoverProjects({ cwd: testDir });
 
@@ -123,6 +117,9 @@ describe('discoverProjects', () => {
     await writeFile(join(testDir, 'valid.json'), JSON.stringify({ name: 'valid' }));
     await writeFile(join(testDir, 'invalid.json'), 'not valid json {');
 
+    // The invalid file is expected to log a warning — silence it to keep test output clean.
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+
     const projects = await discoverProjects({
       cwd: testDir,
       patterns: ['*.json'],
@@ -130,5 +127,7 @@ describe('discoverProjects', () => {
 
     expect(projects).toHaveLength(1);
     expect(projects[0].packageJson.name).toBe('valid');
+    expect(warn).toHaveBeenCalledOnce();
+    warn.mockRestore();
   });
 });
