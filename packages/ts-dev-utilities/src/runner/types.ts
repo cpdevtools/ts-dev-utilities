@@ -71,7 +71,7 @@ export interface TaskResult {
   state: TaskState;
   /** Wall-clock duration in milliseconds */
   durationMs: number;
-  /** Captured stdout+stderr. Present when state is 'failed' or 'cancelled'. */
+  /** Captured stdout+stderr. Present for all executed tasks (passed, failed, cancelled). */
   output?: string;
   /** True when output was truncated to maxOutputBytes */
   truncated?: boolean;

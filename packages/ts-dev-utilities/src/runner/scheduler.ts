@@ -266,7 +266,7 @@ export async function runScripts(options: RunOptions): Promise<RunSummary> {
     }
 
     states.set(name, 'passed');
-    taskResults.set(name, makeResult(name, node.project.directory, 'passed', Date.now() - startTime));
+    taskResults.set(name, makeResult(name, node.project.directory, 'passed', Date.now() - startTime, combinedOutput || undefined, anyTruncated || undefined));
     await finalize(name, node.project.directory);
   }
 
