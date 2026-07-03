@@ -469,6 +469,39 @@ describe('runScripts: afterTask hook', () => {
     expect(summary.failed[0].output).toBe('post failed');
   });
 
+  it('afterTask throwing preserves the prior task output', async () => {
+    const projects = [makeProject('pkg-a')];
+
+    // Script fails (output is captured for failed tasks), then afterTask also throws.
+    const execFn: MockExecFn = async () => ({ exitCode: 1, output: 'build log', truncated: false });
+
+    const summary = await runScripts(
+      baseOptions(projects, execFn, {
+        afterTask: () => { throw new Error('post failed'); },
+      }),
+    );
+
+    expect(summary.failed).toHaveLength(1);
+    expect(summary.failed[0].output).toBe('build log\npost failed');
+  });
+
+  it('afterTask throwing skips dependents', async () => {
+    const projects = [makeProject('pkg-a'), makeProject('pkg-b', ['pkg-a'])];
+
+    const execFn: MockExecFn = async () => ({ exitCode: 0, output: '', truncated: false });
+
+    const summary = await runScripts(
+      baseOptions(projects, execFn, {
+        afterTask: (p) => {
+          if (p.name === 'pkg-a') throw new Error('post failed');
+        },
+      }),
+    );
+
+    expect(summary.failed.map((t) => t.project)).toContain('pkg-a');
+    expect(summary.skipped.map((t) => t.project)).toContain('pkg-b');
+  });
+
   it('afterTask is NOT called when beforeTask throws', async () => {
     const projects = [makeProject('pkg-a')];
     let afterCalled = false;

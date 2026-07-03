@@ -83,7 +83,9 @@ export async function runScripts(options: RunOptions): Promise<RunSummary> {
       await afterTask(graph.getNode(name)!.project, result);
     } catch (err) {
       states.set(name, 'failed');
-      taskResults.set(name, makeResult(name, dir, 'failed', result.durationMs, (err as Error).message));
+      const hookError = (err as Error).message;
+      const combined = result.output ? `${result.output}\n${hookError}` : hookError;
+      taskResults.set(name, makeResult(name, dir, 'failed', result.durationMs, combined, result.truncated));
     }
   }
 
