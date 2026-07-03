@@ -26,6 +26,7 @@ export async function runScripts(options: RunOptions): Promise<RunSummary> {
     maxOutputBytes = DEFAULT_MAX_OUTPUT_BYTES,
     beforeTask,
     afterTask,
+    onOutput,
     _discover = discoverProjects,
     _exec = execScript,
   } = options;
@@ -209,7 +210,14 @@ export async function runScripts(options: RunOptions): Promise<RunSummary> {
 
       let result: { exitCode: number; output: string; truncated: boolean };
       try {
-        result = await _exec(script, node.project.directory, spawnEnv, abortCtrl.signal, maxOutputBytes);
+        result = await _exec(
+          script,
+          node.project.directory,
+          spawnEnv,
+          abortCtrl.signal,
+          maxOutputBytes,
+          onOutput ? (chunk) => onOutput(node.project, chunk) : undefined,
+        );
       } catch (err) {
         const finalState: TaskState = abortCtrl.signal.aborted ? 'cancelled' : 'failed';
         states.set(name, finalState);

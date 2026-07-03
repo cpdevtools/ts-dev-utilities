@@ -10,6 +10,9 @@ importers:
 
   .:
     devDependencies:
+      '@cpdevtools/ts-dev-utilities-cli':
+        specifier: workspace:*
+        version: link:packages/cli
       '@types/node':
         specifier: ^20.17.10
         version: 20.19.30

@@ -4,30 +4,16 @@
   "private": true,
   "description": "TypeScript development utilities — workspace root",
   "scripts": {
-    "build": "wireit",
-    "test": "wireit",
-    "typecheck": "wireit",
-    "lint": "wireit",
+    "build": "devutil run build",
+    "test": "devutil run test",
+    "typecheck": "devutil run typecheck",
+    "lint": "devutil run lint",
     "format": "prettier --write \"**/*.{ts,js,json,md,yml}\" --ignore-path .gitignore",
     "syncpack.fix": "syncpack fix-mismatches",
     "syncpack.format": "syncpack format",
     "syncpack.list": "syncpack list-mismatches",
     "dep-versions.check": "devutil dep-versions check .publish/deps.yml",
     "dep-versions.fix": "devutil dep-versions fix .publish/deps.yml"
-  },
-  "wireit": {
-    "build": {
-      "dependencies": ["./packages/ts-dev-utilities:build", "./packages/cli:build"]
-    },
-    "test": {
-      "dependencies": ["./packages/ts-dev-utilities:test"]
-    },
-    "typecheck": {
-      "dependencies": ["./packages/ts-dev-utilities:typecheck", "./packages/cli:typecheck"]
-    },
-    "lint": {
-      "dependencies": ["./packages/ts-dev-utilities:lint"]
-    }
   },
   "keywords": [],
   "author": "CPDevTools",
@@ -37,6 +23,7 @@
     "url": "git+https://github.com/cpdevtools/ts-dev-utilities.git"
   },
   "devDependencies": {
+    "@cpdevtools/ts-dev-utilities-cli": "workspace:*",
     "@types/node": "^20.17.10",
     "@typescript-eslint/eslint-plugin": "^8.20.0",
     "@typescript-eslint/parser": "^8.20.0",

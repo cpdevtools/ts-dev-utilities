@@ -30,6 +30,13 @@ export interface RunOptions {
   maxOutputBytes?: number;
 
   /**
+   * Called with each chunk of combined stdout+stderr as it is produced by a
+   * task, enabling live streaming of output. Independent of the capture limit.
+   * When omitted, output is only buffered (and shown for failures).
+   */
+  onOutput?: (project: Project, chunk: string) => void;
+
+  /**
    * Called after a project becomes ready (all its workspace dependencies have
    * passed) and before its script(s) are run.
    * If this hook throws, the project is marked as failed and afterTask is NOT called.
@@ -57,6 +64,7 @@ export interface RunOptions {
     env: NodeJS.ProcessEnv,
     signal: AbortSignal,
     maxOutputBytes: number,
+    onChunk?: (chunk: string) => void,
   ) => Promise<{ exitCode: number; output: string; truncated: boolean }>;
 }
 

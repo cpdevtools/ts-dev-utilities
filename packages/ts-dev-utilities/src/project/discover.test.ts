@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { mkdir, writeFile, rm, symlink } from 'node:fs/promises';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
@@ -123,6 +123,9 @@ describe('discoverProjects', () => {
     await writeFile(join(testDir, 'valid.json'), JSON.stringify({ name: 'valid' }));
     await writeFile(join(testDir, 'invalid.json'), 'not valid json {');
 
+    // The invalid file is expected to log a warning — silence it to keep test output clean.
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+
     const projects = await discoverProjects({
       cwd: testDir,
       patterns: ['*.json'],
@@ -130,5 +133,7 @@ describe('discoverProjects', () => {
 
     expect(projects).toHaveLength(1);
     expect(projects[0].packageJson.name).toBe('valid');
+    expect(warn).toHaveBeenCalledOnce();
+    warn.mockRestore();
   });
 });

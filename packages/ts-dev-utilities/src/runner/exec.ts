@@ -10,6 +10,10 @@ export interface ExecResult {
  * Run a single npm script in a project directory.
  * Captures combined stdout+stderr up to maxOutputBytes (last N bytes when exceeded).
  * Respects an AbortSignal for fail-fast cancellation.
+ *
+ * When `onChunk` is provided, every chunk of combined stdout+stderr is forwarded
+ * to it as it arrives (unbounded — independent of the capture limit), enabling
+ * live streaming of output.
  */
 export async function execScript(
   script: string,
@@ -17,6 +21,7 @@ export async function execScript(
   env: NodeJS.ProcessEnv,
   signal: AbortSignal,
   maxOutputBytes: number,
+  onChunk?: (chunk: string) => void,
 ): Promise<ExecResult> {
   if (signal.aborted) {
     return { exitCode: -1, output: '', truncated: false };
@@ -43,6 +48,7 @@ export async function execScript(
     let truncated = false;
 
     function onData(chunk: Buffer): void {
+      if (onChunk) onChunk(chunk.toString('utf8'));
       if (truncated) return;
       const remaining = maxOutputBytes - totalBytes;
       if (chunk.length >= remaining) {
