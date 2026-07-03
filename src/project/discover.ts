@@ -24,7 +24,7 @@ export async function discoverProjects(
   const {
     cwd = process.cwd(),
     patterns = ['**/package.json'],
-    ignore = ['**/node_modules/**', '**/dist/**'],
+    ignore = ['**/node_modules/**', '**/dist/**', '**/.pnpm-prod/**'],
   } = options;
 
   // Find all package.json files
@@ -33,6 +33,10 @@ export async function discoverProjects(
     ignore,
     absolute: true,
     onlyFiles: true,
+    // Never traverse into symlinked directories — real workspace packages are
+    // always real directories. Following symlinks can recurse infinitely through
+    // nested package installs (e.g. .pnpm-prod symlinking back to the repo root).
+    followSymbolicLinks: false,
   });
 
   // Read and parse each package.json
