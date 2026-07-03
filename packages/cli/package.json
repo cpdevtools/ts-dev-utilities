@@ -5,45 +5,12 @@
   "bin": {
     "devutil": "./dist/bin.js"
   },
-  "files": [
-    "dist"
-  ],
   "scripts": {
     "build": "wireit",
-    "typecheck": "wireit",
     "github.actions.build": "tsup",
-    "github.actions.pack": "pnpm pack"
+    "github.actions.pack": "pnpm pack",
+    "typecheck": "wireit"
   },
-  "wireit": {
-    "build": {
-      "command": "tsup",
-      "dependencies": ["../ts-dev-utilities:build"],
-      "files": ["src/**/*.ts", "tsup.config.ts", "tsconfig.json"],
-      "output": ["dist/**"]
-    },
-    "typecheck": {
-      "command": "tsc --noEmit",
-      "dependencies": ["../ts-dev-utilities:build"],
-      "files": ["src/**/*.ts", "tsconfig.json"]
-    }
-  },
-  "keywords": [
-    "typescript",
-    "cli",
-    "devutil",
-    "development"
-  ],
-  "author": "CPDevTools",
-  "license": "MIT",
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/cpdevtools/ts-dev-utilities.git",
-    "directory": "packages/cli"
-  },
-  "bugs": {
-    "url": "https://github.com/cpdevtools/ts-dev-utilities/issues"
-  },
-  "homepage": "https://github.com/cpdevtools/ts-dev-utilities#readme",
   "dependencies": {
     "@cpdevtools/ts-dev-utilities": "workspace:*"
   },
@@ -52,7 +19,51 @@
     "tsup": "^8.3.5",
     "typescript": "^5.7.3"
   },
+  "keywords": [
+    "cli",
+    "development",
+    "devutil",
+    "typescript"
+  ],
+  "author": "CPDevTools",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/cpdevtools/ts-dev-utilities.git",
+    "directory": "packages/cli"
+  },
+  "bugs": "https://github.com/cpdevtools/ts-dev-utilities/issues",
+  "homepage": "https://github.com/cpdevtools/ts-dev-utilities#readme",
   "engines": {
     "node": ">=24"
+  },
+  "files": [
+    "dist"
+  ],
+  "wireit": {
+    "build": {
+      "command": "tsup",
+      "dependencies": [
+        "../ts-dev-utilities:build"
+      ],
+      "files": [
+        "src/**/*.ts",
+        "tsup.config.ts",
+        "tsconfig.json"
+      ],
+      "output": [
+        "dist/**"
+      ]
+    },
+    "typecheck": {
+      "command": "tsc --noEmit",
+      "dependencies": [
+        "../ts-dev-utilities:build"
+      ],
+      "files": [
+        "src/**/*.ts",
+        "tsconfig.json"
+      ]
+    }
   }
 }

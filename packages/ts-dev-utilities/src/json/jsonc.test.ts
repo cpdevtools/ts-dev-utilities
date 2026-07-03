@@ -13,7 +13,7 @@ describe('parseJson', () => {
       /* block comment */
       "number": 42
     }`;
-    
+
     const result = parseJson(json);
     expect(result).toEqual({ key: 'value', number: 42 });
   });
@@ -23,7 +23,7 @@ describe('parseJson', () => {
       "key": "value",
       "array": [1, 2, 3,],
     }`;
-    
+
     const result = parseJson(json);
     expect(result).toEqual({ key: 'value', array: [1, 2, 3] });
   });

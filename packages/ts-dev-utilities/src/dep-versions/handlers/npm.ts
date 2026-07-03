@@ -9,7 +9,11 @@ const DEP_FIELDS = [
   'optionalDependencies',
 ] as const;
 
-async function scan(cwd: string, deps: Record<string, string>, write: boolean): Promise<DepChange[]> {
+async function scan(
+  cwd: string,
+  deps: Record<string, string>,
+  write: boolean,
+): Promise<DepChange[]> {
   const projects = await discoverProjects({ cwd });
   const allChanges: DepChange[] = [];
 
@@ -23,7 +27,12 @@ async function scan(cwd: string, deps: Record<string, string>, write: boolean): 
       if (!section) continue;
       for (const [name, targetVersion] of Object.entries(deps)) {
         if (name in section && section[name] !== targetVersion) {
-          fileChanges.push({ file: project.packageJsonPath, name, from: section[name], to: targetVersion });
+          fileChanges.push({
+            file: project.packageJsonPath,
+            name,
+            from: section[name],
+            to: targetVersion,
+          });
           if (write) section[name] = targetVersion;
         }
       }
@@ -42,5 +51,5 @@ async function scan(cwd: string, deps: Record<string, string>, write: boolean): 
 export const npmHandler: DepVersionHandler = {
   name: 'npm',
   check: (cwd, deps) => scan(cwd, deps, false),
-  fix:   (cwd, deps) => scan(cwd, deps, true),
+  fix: (cwd, deps) => scan(cwd, deps, true),
 };

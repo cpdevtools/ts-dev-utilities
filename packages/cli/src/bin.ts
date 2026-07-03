@@ -45,7 +45,9 @@ async function cmdRun(args: string[]): Promise<void> {
   const { positional, flags } = parseArgs(args);
 
   if (positional.length === 0) {
-    console.error('Usage: devutil run <script...> [--output-style silent|summary|full|stream] [--fail-fast] [--concurrency <n>] [--cwd <path>] [--missing-script skip|error] [--max-output <bytes>]');
+    console.error(
+      'Usage: devutil run <script...> [--output-style silent|summary|full|stream] [--fail-fast] [--concurrency <n>] [--cwd <path>] [--missing-script skip|error] [--max-output <bytes>]',
+    );
     process.exit(1);
   }
 
@@ -61,7 +63,9 @@ async function cmdRun(args: string[]): Promise<void> {
     cwd: flags['cwd'] as string | undefined,
     missingScript: flags['missing-script'] as 'skip' | 'error' | undefined,
     maxOutputBytes: maxOutputRaw ? parseInt(maxOutputRaw as string, 10) : undefined,
-    onOutput: streamWriter ? (project, chunk) => streamWriter.write(project.name, chunk) : undefined,
+    onOutput: streamWriter
+      ? (project, chunk) => streamWriter.write(project.name, chunk)
+      : undefined,
   });
 
   streamWriter?.flush();
@@ -88,7 +92,9 @@ function parseOutputStyle(value: string | boolean | undefined): OutputStyle {
   if (value === undefined) return isCI() ? 'full' : 'stream';
   const v = String(value).toLowerCase();
   if (v === 'silent' || v === 'summary' || v === 'full' || v === 'stream') return v;
-  console.error(`Invalid --output-style value: ${value}. Expected one of: silent, summary, full, stream`);
+  console.error(
+    `Invalid --output-style value: ${value}. Expected one of: silent, summary, full, stream`,
+  );
   process.exit(1);
 }
 
@@ -243,7 +249,8 @@ async function cmdGraph(args: string[]): Promise<void> {
 }
 
 function printHelp(): void {
-  console.log(`
+  console.log(
+    `
 devutil — workspace script runner and inspector
 
 Commands:
@@ -277,7 +284,8 @@ Examples:
   devutil run github.actions.test --concurrency 4
   devutil discover
   devutil graph
-`.trim());
+`.trim(),
+  );
 }
 
 // ----------------------------------------------------------------
@@ -300,13 +308,16 @@ function printSummary(summary: RunSummary, options: { showFailureOutput?: boolea
     }
   }
 
-  console.log('\n' + [
-    `✅  Passed:    ${summary.passed.length}`,
-    `❌  Failed:    ${summary.failed.length}`,
-    `⏭   Skipped:   ${summary.skipped.length}`,
-    `🚫  Cancelled: ${summary.cancelled.length}`,
-    ...(summary.noScript.length > 0 ? [`—   No script: ${summary.noScript.length}`] : []),
-  ].join('\n'));
+  console.log(
+    '\n' +
+      [
+        `✅  Passed:    ${summary.passed.length}`,
+        `❌  Failed:    ${summary.failed.length}`,
+        `⏭   Skipped:   ${summary.skipped.length}`,
+        `🚫  Cancelled: ${summary.cancelled.length}`,
+        ...(summary.noScript.length > 0 ? [`—   No script: ${summary.noScript.length}`] : []),
+      ].join('\n'),
+  );
 }
 
 // ----------------------------------------------------------------
@@ -322,10 +333,18 @@ const [, , command, ...rest] = process.argv;
   }
 
   switch (command) {
-    case 'run':          await cmdRun(rest);         break;
-    case 'discover':     await cmdDiscover(rest);    break;
-    case 'graph':        await cmdGraph(rest);       break;
-    case 'dep-versions': await cmdDepVersions(rest); break;
+    case 'run':
+      await cmdRun(rest);
+      break;
+    case 'discover':
+      await cmdDiscover(rest);
+      break;
+    case 'graph':
+      await cmdGraph(rest);
+      break;
+    case 'dep-versions':
+      await cmdDepVersions(rest);
+      break;
     default:
       console.error(`Unknown command: ${command}\nRun 'devutil help' for usage.`);
       process.exit(1);

@@ -66,11 +66,7 @@ export interface ReleaseAttachment {
 /**
  * Union of all artifact types
  */
-export type Artifact =
-  | NpmArtifact
-  | DockerArtifact
-  | NuGetArtifact
-  | ReleaseAttachment;
+export type Artifact = NpmArtifact | DockerArtifact | NuGetArtifact | ReleaseAttachment;
 
 /**
  * Project artifact descriptor

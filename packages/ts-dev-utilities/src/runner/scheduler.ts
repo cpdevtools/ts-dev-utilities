@@ -86,7 +86,10 @@ export async function runScripts(options: RunOptions): Promise<RunSummary> {
       states.set(name, 'failed');
       const hookError = (err as Error).message;
       const combined = result.output ? `${result.output}\n${hookError}` : hookError;
-      taskResults.set(name, makeResult(name, dir, 'failed', result.durationMs, combined, result.truncated));
+      taskResults.set(
+        name,
+        makeResult(name, dir, 'failed', result.durationMs, combined, result.truncated),
+      );
     }
   }
 
@@ -274,7 +277,17 @@ export async function runScripts(options: RunOptions): Promise<RunSummary> {
     }
 
     states.set(name, 'passed');
-    taskResults.set(name, makeResult(name, node.project.directory, 'passed', Date.now() - startTime, combinedOutput || undefined, anyTruncated || undefined));
+    taskResults.set(
+      name,
+      makeResult(
+        name,
+        node.project.directory,
+        'passed',
+        Date.now() - startTime,
+        combinedOutput || undefined,
+        anyTruncated || undefined,
+      ),
+    );
     await finalize(name, node.project.directory);
   }
 
@@ -302,11 +315,21 @@ export async function runScripts(options: RunOptions): Promise<RunSummary> {
   const summary: RunSummary = { passed: [], failed: [], skipped: [], cancelled: [], noScript: [] };
   for (const result of taskResults.values()) {
     switch (result.state) {
-      case 'passed':    summary.passed.push(result);   break;
-      case 'failed':    summary.failed.push(result);   break;
-      case 'skipped':   summary.skipped.push(result);  break;
-      case 'cancelled': summary.cancelled.push(result); break;
-      case 'no-script': summary.noScript.push(result); break;
+      case 'passed':
+        summary.passed.push(result);
+        break;
+      case 'failed':
+        summary.failed.push(result);
+        break;
+      case 'skipped':
+        summary.skipped.push(result);
+        break;
+      case 'cancelled':
+        summary.cancelled.push(result);
+        break;
+      case 'no-script':
+        summary.noScript.push(result);
+        break;
     }
   }
 

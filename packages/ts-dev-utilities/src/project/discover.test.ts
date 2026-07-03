@@ -22,7 +22,7 @@ describe('discoverProjects', () => {
     // Create test structure
     await mkdir(join(testDir, 'packages/pkg1'), { recursive: true });
     await mkdir(join(testDir, 'packages/pkg2'), { recursive: true });
-    
+
     await writeFile(
       join(testDir, 'packages/pkg1/package.json'),
       JSON.stringify({ name: 'pkg1', version: '1.0.0' }),
@@ -67,10 +67,7 @@ describe('discoverProjects', () => {
       join(testDir, 'node_modules/dep/package.json'),
       JSON.stringify({ name: 'dep' }),
     );
-    await writeFile(
-      join(testDir, 'package.json'),
-      JSON.stringify({ name: 'root' }),
-    );
+    await writeFile(join(testDir, 'package.json'), JSON.stringify({ name: 'root' }));
 
     const projects = await discoverProjects({
       cwd: testDir,
@@ -86,10 +83,7 @@ describe('discoverProjects', () => {
       join(testDir, '.pnpm-prod/dep/package.json'),
       JSON.stringify({ name: 'prod-dep' }),
     );
-    await writeFile(
-      join(testDir, 'package.json'),
-      JSON.stringify({ name: 'root' }),
-    );
+    await writeFile(join(testDir, 'package.json'), JSON.stringify({ name: 'root' }));
 
     const projects = await discoverProjects({ cwd: testDir });
 

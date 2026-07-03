@@ -30,11 +30,20 @@ describe('githubActionsHandler', () => {
     const wfPath = join(dir, '.github', 'workflows', 'ci.yml');
     await writeFile(wfPath, WORKFLOW('v4'));
 
-    const changes = await githubActionsHandler.check(dir, { 'actions/checkout': 'v7', 'actions/setup-node': 'v6' });
+    const changes = await githubActionsHandler.check(dir, {
+      'actions/checkout': 'v7',
+      'actions/setup-node': 'v6',
+    });
 
     expect(changes).toHaveLength(2);
-    expect(changes.find(c => c.name === 'actions/checkout')).toMatchObject({ from: 'v4', to: 'v7' });
-    expect(changes.find(c => c.name === 'actions/setup-node')).toMatchObject({ from: 'v4', to: 'v6' });
+    expect(changes.find((c) => c.name === 'actions/checkout')).toMatchObject({
+      from: 'v4',
+      to: 'v7',
+    });
+    expect(changes.find((c) => c.name === 'actions/setup-node')).toMatchObject({
+      from: 'v4',
+      to: 'v6',
+    });
   });
 
   it('check: returns nothing when versions already match', async () => {
@@ -58,7 +67,10 @@ describe('githubActionsHandler', () => {
     const wfPath = join(dir, '.github', 'workflows', 'ci.yml');
     await writeFile(wfPath, WORKFLOW('v4'));
 
-    const changes = await githubActionsHandler.fix(dir, { 'actions/checkout': 'v7', 'actions/setup-node': 'v6' });
+    const changes = await githubActionsHandler.fix(dir, {
+      'actions/checkout': 'v7',
+      'actions/setup-node': 'v6',
+    });
 
     expect(changes).toHaveLength(2);
     const updated = await readFile(wfPath, 'utf-8');
@@ -68,12 +80,15 @@ describe('githubActionsHandler', () => {
 
   it('fix: handles action.yml files', async () => {
     const actionPath = join(dir, 'action.yml');
-    await writeFile(actionPath, `
+    await writeFile(
+      actionPath,
+      `
 runs:
   using: composite
   steps:
     - uses: actions/setup-node@v4
-`);
+`,
+    );
 
     const changes = await githubActionsHandler.fix(dir, { 'actions/setup-node': 'v6' });
 

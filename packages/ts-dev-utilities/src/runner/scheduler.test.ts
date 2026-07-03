@@ -96,13 +96,11 @@ describe('runScripts: diamond ordering', () => {
 
 describe('runScripts: failure propagation', () => {
   it('skips direct dependents when a task fails', async () => {
-    const projects = [
-      makeProject('pkg-a'),
-      makeProject('pkg-b', ['pkg-a']),
-    ];
+    const projects = [makeProject('pkg-a'), makeProject('pkg-b', ['pkg-a'])];
 
     const execFn: MockExecFn = async (_script, _cwd, env) => {
-      if (env.PROJECT_NAME === 'pkg-a') return { exitCode: 1, output: 'a failed', truncated: false };
+      if (env.PROJECT_NAME === 'pkg-a')
+        return { exitCode: 1, output: 'a failed', truncated: false };
       return { exitCode: 0, output: '', truncated: false };
     };
 
@@ -121,7 +119,8 @@ describe('runScripts: failure propagation', () => {
     ];
 
     const execFn: MockExecFn = async (_script, _cwd, env) => {
-      if (env.PROJECT_NAME === 'pkg-a') return { exitCode: 1, output: 'a failed', truncated: false };
+      if (env.PROJECT_NAME === 'pkg-a')
+        return { exitCode: 1, output: 'a failed', truncated: false };
       return { exitCode: 0, output: '', truncated: false };
     };
 
@@ -134,10 +133,7 @@ describe('runScripts: failure propagation', () => {
 
   it('continues running independent tasks after a failure', async () => {
     // A and B are independent. A fails. B should still run.
-    const projects = [
-      makeProject('pkg-a'),
-      makeProject('pkg-b'),
-    ];
+    const projects = [makeProject('pkg-a'), makeProject('pkg-b')];
 
     const execFn: MockExecFn = async (_script, _cwd, env) => {
       if (env.PROJECT_NAME === 'pkg-a') return { exitCode: 1, output: '', truncated: false };
@@ -160,11 +156,7 @@ describe('runScripts: fail-fast', () => {
     // A: fails immediately
     // B: depends on A → pending, should be skipped
     // C: no deps, running alongside A, should be cancelled
-    const projects = [
-      makeProject('pkg-a'),
-      makeProject('pkg-b', ['pkg-a']),
-      makeProject('pkg-c'),
-    ];
+    const projects = [makeProject('pkg-a'), makeProject('pkg-b', ['pkg-a']), makeProject('pkg-c')];
 
     const execFn: MockExecFn = async (_script, _cwd, env, signal) => {
       if (env.PROJECT_NAME === 'pkg-a') {
@@ -173,10 +165,14 @@ describe('runScripts: fail-fast', () => {
       // pkg-c: long-running, respects abort
       return new Promise((resolve) => {
         const t = setTimeout(() => resolve({ exitCode: 0, output: '', truncated: false }), 500);
-        signal.addEventListener('abort', () => {
-          clearTimeout(t);
-          resolve({ exitCode: -1, output: '', truncated: false });
-        }, { once: true });
+        signal.addEventListener(
+          'abort',
+          () => {
+            clearTimeout(t);
+            resolve({ exitCode: -1, output: '', truncated: false });
+          },
+          { once: true },
+        );
       });
     };
 
@@ -219,11 +215,7 @@ describe('runScripts: concurrency', () => {
   });
 
   it('runs all tasks simultaneously when concurrency is unlimited', async () => {
-    const projects = [
-      makeProject('pkg-a'),
-      makeProject('pkg-b'),
-      makeProject('pkg-c'),
-    ];
+    const projects = [makeProject('pkg-a'), makeProject('pkg-b'), makeProject('pkg-c')];
 
     let maxObserved = 0;
     let currentlyRunning = 0;
@@ -265,8 +257,8 @@ describe('runScripts: missingScript', () => {
   it('skip: no-script tasks unblock their dependents', async () => {
     // B depends on A. A has no script → no-script (pass). B should run.
     const projects = [
-      makeProject('pkg-a', [], {}),     // no script
-      makeProject('pkg-b', ['pkg-a']),  // has script
+      makeProject('pkg-a', [], {}), // no script
+      makeProject('pkg-b', ['pkg-a']), // has script
     ];
 
     const execFn: MockExecFn = async () => ({ exitCode: 0, output: '', truncated: false });
@@ -285,9 +277,7 @@ describe('runScripts: missingScript', () => {
 
     const execFn: MockExecFn = async () => ({ exitCode: 0, output: '', truncated: false });
 
-    const summary = await runScripts(
-      baseOptions(projects, execFn, { missingScript: 'error' }),
-    );
+    const summary = await runScripts(baseOptions(projects, execFn, { missingScript: 'error' }));
 
     expect(summary.failed.map((t) => t.project)).toContain('pkg-b');
     expect(summary.passed.map((t) => t.project)).toContain('pkg-a');
@@ -368,7 +358,9 @@ describe('runScripts: beforeTask hook', () => {
 
     const summary = await runScripts(
       baseOptions(projects, execFn, {
-        beforeTask: (p) => { calls.push(`before:${p.name}`); },
+        beforeTask: (p) => {
+          calls.push(`before:${p.name}`);
+        },
       }),
     );
 
@@ -387,7 +379,9 @@ describe('runScripts: beforeTask hook', () => {
 
     const summary = await runScripts(
       baseOptions(projects, execFn, {
-        beforeTask: () => { throw new Error('setup failed'); },
+        beforeTask: () => {
+          throw new Error('setup failed');
+        },
       }),
     );
 
@@ -445,7 +439,9 @@ describe('runScripts: afterTask hook', () => {
 
     const summary = await runScripts(
       baseOptions(projects, execFn, {
-        afterTask: (_p, r) => { hookState = r.state; },
+        afterTask: (_p, r) => {
+          hookState = r.state;
+        },
       }),
     );
 
@@ -460,7 +456,9 @@ describe('runScripts: afterTask hook', () => {
 
     const summary = await runScripts(
       baseOptions(projects, execFn, {
-        afterTask: () => { throw new Error('post failed'); },
+        afterTask: () => {
+          throw new Error('post failed');
+        },
       }),
     );
 
@@ -477,7 +475,9 @@ describe('runScripts: afterTask hook', () => {
 
     const summary = await runScripts(
       baseOptions(projects, execFn, {
-        afterTask: () => { throw new Error('post failed'); },
+        afterTask: () => {
+          throw new Error('post failed');
+        },
       }),
     );
 
@@ -510,8 +510,12 @@ describe('runScripts: afterTask hook', () => {
 
     await runScripts(
       baseOptions(projects, execFn, {
-        beforeTask: () => { throw new Error('before failed'); },
-        afterTask: () => { afterCalled = true; },
+        beforeTask: () => {
+          throw new Error('before failed');
+        },
+        afterTask: () => {
+          afterCalled = true;
+        },
       }),
     );
 
@@ -526,7 +530,9 @@ describe('runScripts: afterTask hook', () => {
 
     await runScripts(
       baseOptions(projects, execFn, {
-        afterTask: () => { afterCalled = true; },
+        afterTask: () => {
+          afterCalled = true;
+        },
       }),
     );
 

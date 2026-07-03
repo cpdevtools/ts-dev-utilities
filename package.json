@@ -4,16 +4,35 @@
   "private": true,
   "description": "TypeScript development utilities — workspace root",
   "scripts": {
-    "prepare": "wireit",
     "build": "devutil run build",
-    "test": "devutil run test",
-    "typecheck": "devutil run typecheck",
-    "lint": "devutil run lint",
-    "fix": "wireit",
-    "format": "wireit",
     "check": "wireit",
     "clean": "wireit",
-    "reset": "wireit"
+    "fix": "wireit",
+    "format": "wireit",
+    "lint": "devutil run lint",
+    "prepare": "wireit",
+    "reset": "wireit",
+    "test": "devutil run test",
+    "typecheck": "devutil run typecheck"
+  },
+  "devDependencies": {
+    "@cpdevtools/ts-dev-utilities-cli": "workspace:*",
+    "@types/node": "^20.17.10",
+    "@typescript-eslint/eslint-plugin": "^8.20.0",
+    "@typescript-eslint/parser": "^8.20.0",
+    "eslint": "^9.18.0",
+    "husky": "^9.1.7",
+    "prettier": "^3.4.2",
+    "syncpack": "^13.0.0",
+    "typescript": "^5.7.3",
+    "wireit": "^0.14.13"
+  },
+  "keywords": [],
+  "author": "CPDevTools",
+  "license": "MIT",
+  "repository": "cpdevtools/ts-dev-utilities.git",
+  "engines": {
+    "node": ">=24"
   },
   "wireit": {
     "prepare": {
@@ -31,7 +50,8 @@
     "fix": {
       "dependencies": [
         "fix.syncpack",
-        "fix.git-remove-tags"
+        "fix.git-remove-tags",
+        "format"
       ]
     },
     "fix.deps": {
@@ -48,7 +68,8 @@
     },
     "format": {
       "dependencies": [
-        "format.prettier"
+        "format.prettier",
+        "format.projects"
       ]
     },
     "format.syncpack": {
@@ -59,6 +80,9 @@
       "dependencies": [
         "format.syncpack"
       ]
+    },
+    "format.projects": {
+      "command": "devutil run format"
     },
     "check": {
       "dependencies": [
@@ -96,27 +120,5 @@
       "command": "pnpm install",
       "cache": false
     }
-  },
-  "keywords": [],
-  "author": "CPDevTools",
-  "license": "MIT",
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/cpdevtools/ts-dev-utilities.git"
-  },
-  "devDependencies": {
-    "@cpdevtools/ts-dev-utilities-cli": "workspace:*",
-    "@types/node": "^20.17.10",
-    "@typescript-eslint/eslint-plugin": "^8.20.0",
-    "@typescript-eslint/parser": "^8.20.0",
-    "eslint": "^9.18.0",
-    "husky": "^9.1.7",
-    "prettier": "^3.4.2",
-    "syncpack": "^13.0.0",
-    "typescript": "^5.7.3",
-    "wireit": "^0.14.13"
-  },
-  "engines": {
-    "node": ">=24"
   }
 }

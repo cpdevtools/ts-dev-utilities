@@ -5,17 +5,17 @@ import type { ProjectArtifactDescriptor } from './types.js';
 
 /**
  * Write an artifact descriptor to {PROJECT_NAME}.artifact.yml
- * 
+ *
  * This function should be called from a project's pack script to generate
  * the artifact descriptor file. It uses environment variables set by the workflow.
- * 
+ *
  * @param descriptor - The project artifact descriptor to write
  * @throws Error if required environment variables are missing
- * 
+ *
  * @example
  * ```typescript
  * import { writeArtifact } from '@cpdevtools/ts-dev-utilities';
- * 
+ *
  * await writeArtifact({
  *   project: '@myorg/my-package',
  *   artifacts: [
@@ -36,14 +36,13 @@ export async function writeArtifact(descriptor: ProjectArtifactDescriptor): Prom
   if (!artifactOutputDir) {
     throw new Error(
       'ARTIFACT_OUTPUT_DIR environment variable is required. ' +
-      'This should be set by the workflow.'
+        'This should be set by the workflow.',
     );
   }
 
   if (!projectName) {
     throw new Error(
-      'PROJECT_NAME environment variable is required. ' +
-      'This should be set by the workflow.'
+      'PROJECT_NAME environment variable is required. ' + 'This should be set by the workflow.',
     );
   }
 

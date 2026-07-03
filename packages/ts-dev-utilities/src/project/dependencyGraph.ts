@@ -137,9 +137,7 @@ export class DependencyGraph {
     // Check for cycles first
     const cycle = this.detectCycle();
     if (cycle) {
-      throw new Error(
-        `Circular dependency detected: ${cycle.join(' -> ')} -> ${cycle[0]}`
-      );
+      throw new Error(`Circular dependency detected: ${cycle.join(' -> ')} -> ${cycle[0]}`);
     }
 
     const batches: ProjectInfo[][] = [];
@@ -152,9 +150,7 @@ export class DependencyGraph {
 
       for (const name of remaining) {
         const node = this.nodes.get(name)!;
-        const hasUnprocessedDeps = Array.from(node.dependencies).some(
-          (dep) => !processed.has(dep)
-        );
+        const hasUnprocessedDeps = Array.from(node.dependencies).some((dep) => !processed.has(dep));
 
         if (!hasUnprocessedDeps) {
           batch.push(node.project);
@@ -163,9 +159,7 @@ export class DependencyGraph {
 
       if (batch.length === 0) {
         // This shouldn't happen if cycle detection works correctly
-        throw new Error(
-          'Unable to determine topological order. Possible circular dependency.'
-        );
+        throw new Error('Unable to determine topological order. Possible circular dependency.');
       }
 
       batches.push(batch);
@@ -189,7 +183,7 @@ export class DependencyGraph {
  */
 export function buildDependencyGraph(
   projects: ProjectInfo[],
-  workspaceProjects?: Set<string>
+  workspaceProjects?: Set<string>,
 ): DependencyGraph {
   const graph = new DependencyGraph();
   const projectNames = new Set(projects.map((p) => p.name || p.packageJson.name!));
@@ -205,7 +199,7 @@ export function buildDependencyGraph(
       ...project.packageJson.dependencies,
       ...project.packageJson.devDependencies,
     };
-    
+
     for (const depName of Object.keys(deps || {})) {
       // Only add edge if dependency is in the workspace
       if (projectNames.has(depName)) {
@@ -213,7 +207,7 @@ export function buildDependencyGraph(
       } else if (workspaceProjects?.has(depName)) {
         // Dependency is in workspace but not in discovered projects
         console.warn(
-          `Warning: ${project.name || project.packageJson.name} depends on ${depName} which is in workspace but not discovered`
+          `Warning: ${project.name || project.packageJson.name} depends on ${depName} which is in workspace but not discovered`,
         );
       }
     }

@@ -16,8 +16,17 @@ function escapeRegex(s: string): string {
   return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
-async function scan(cwd: string, deps: Record<string, string>, write: boolean): Promise<DepChange[]> {
-  const files = await globby(GLOB_PATTERNS, { cwd, absolute: true, ignore: IGNORE, followSymbolicLinks: false });
+async function scan(
+  cwd: string,
+  deps: Record<string, string>,
+  write: boolean,
+): Promise<DepChange[]> {
+  const files = await globby(GLOB_PATTERNS, {
+    cwd,
+    absolute: true,
+    ignore: IGNORE,
+    followSymbolicLinks: false,
+  });
   const allChanges: DepChange[] = [];
 
   for (const file of files) {
@@ -62,5 +71,5 @@ async function scan(cwd: string, deps: Record<string, string>, write: boolean): 
 export const dockerHandler: DepVersionHandler = {
   name: 'docker',
   check: (cwd, deps) => scan(cwd, deps, false),
-  fix:   (cwd, deps) => scan(cwd, deps, true),
+  fix: (cwd, deps) => scan(cwd, deps, true),
 };

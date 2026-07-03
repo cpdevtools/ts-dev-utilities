@@ -42,10 +42,10 @@ async function readWorkspacePatterns(
 
 /**
  * Discover projects in a workspace by finding package.json files
- * 
+ *
  * @param options - Discovery options
  * @returns Array of discovered projects
- * 
+ *
  * @example
  * ```typescript
  * const projects = await discoverProjects({
@@ -54,9 +54,7 @@ async function readWorkspacePatterns(
  * });
  * ```
  */
-export async function discoverProjects(
-  options: ProjectDiscoveryOptions = {},
-): Promise<Project[]> {
+export async function discoverProjects(options: ProjectDiscoveryOptions = {}): Promise<Project[]> {
   const { cwd = process.cwd() } = options;
 
   // When patterns aren't explicitly provided, prefer the pnpm workspace
@@ -85,12 +83,12 @@ export async function discoverProjects(
 
   // Read and parse each package.json
   const projects: Project[] = [];
-  
+
   for (const packageJsonPath of packageJsonPaths) {
     try {
       const content = await readFile(packageJsonPath, 'utf-8');
       const packageJson = parseJson(content) as PackageJson;
-      
+
       projects.push({
         packageJsonPath,
         directory: dirname(packageJsonPath),

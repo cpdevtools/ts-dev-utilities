@@ -54,7 +54,10 @@ describe('npmHandler', () => {
   it('fix: updates matching dep and returns change', async () => {
     await mkdir(join(dir, 'pkg-a'), { recursive: true });
     const pkgPath = join(dir, 'pkg-a', 'package.json');
-    await writeFile(pkgPath, JSON.stringify({ name: 'pkg-a', dependencies: { typescript: '^5.0.0' } }));
+    await writeFile(
+      pkgPath,
+      JSON.stringify({ name: 'pkg-a', dependencies: { typescript: '^5.0.0' } }),
+    );
 
     const changes = await npmHandler.fix(dir, { typescript: '^5.9.3' });
 
@@ -66,14 +69,21 @@ describe('npmHandler', () => {
   it('fix: updates across all dep fields', async () => {
     await mkdir(join(dir, 'pkg-a'), { recursive: true });
     const pkgPath = join(dir, 'pkg-a', 'package.json');
-    await writeFile(pkgPath, JSON.stringify({
-      name: 'pkg-a',
-      dependencies: { vitest: '^1.0.0' },
-      devDependencies: { typescript: '^5.0.0' },
-      peerDependencies: { react: '^17.0.0' },
-    }));
+    await writeFile(
+      pkgPath,
+      JSON.stringify({
+        name: 'pkg-a',
+        dependencies: { vitest: '^1.0.0' },
+        devDependencies: { typescript: '^5.0.0' },
+        peerDependencies: { react: '^17.0.0' },
+      }),
+    );
 
-    const changes = await npmHandler.fix(dir, { typescript: '^5.9.3', vitest: '^2.1.0', react: '^18.0.0' });
+    const changes = await npmHandler.fix(dir, {
+      typescript: '^5.9.3',
+      vitest: '^2.1.0',
+      react: '^18.0.0',
+    });
 
     expect(changes).toHaveLength(3);
     const updated = JSON.parse(await readFile(pkgPath, 'utf-8'));
