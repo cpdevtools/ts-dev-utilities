@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { mkdir, writeFile, rm } from 'node:fs/promises';
+import { mkdir, writeFile, rm, symlink } from 'node:fs/promises';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import { discoverProjects } from './discover.js';
@@ -76,6 +76,36 @@ describe('discoverProjects', () => {
       cwd: testDir,
     });
 
+    expect(projects).toHaveLength(1);
+    expect(projects[0].packageJson.name).toBe('root');
+  });
+
+  it('should exclude .pnpm-prod by default', async () => {
+    await mkdir(join(testDir, '.pnpm-prod/dep'), { recursive: true });
+    await writeFile(
+      join(testDir, '.pnpm-prod/dep/package.json'),
+      JSON.stringify({ name: 'prod-dep' }),
+    );
+    await writeFile(
+      join(testDir, 'package.json'),
+      JSON.stringify({ name: 'root' }),
+    );
+
+    const projects = await discoverProjects({ cwd: testDir });
+
+    expect(projects).toHaveLength(1);
+    expect(projects[0].packageJson.name).toBe('root');
+  });
+
+  it('should not follow symlinked directories (avoids infinite loops)', async () => {
+    // A symlink pointing back to the workspace root would otherwise recurse forever.
+    await writeFile(join(testDir, 'package.json'), JSON.stringify({ name: 'root' }));
+    await mkdir(join(testDir, 'linkhost'), { recursive: true });
+    await symlink(testDir, join(testDir, 'linkhost', 'self'), 'dir');
+
+    const projects = await discoverProjects({ cwd: testDir });
+
+    // Only the real root package.json is found; the self-symlink is not traversed.
     expect(projects).toHaveLength(1);
     expect(projects[0].packageJson.name).toBe('root');
   });
