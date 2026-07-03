@@ -11,7 +11,7 @@
   "scripts": {
     "build": "wireit",
     "typecheck": "wireit",
-    "github.actions.build": "pnpm run build",
+    "github.actions.build": "tsup",
     "github.actions.pack": "pnpm pack"
   },
   "wireit": {
