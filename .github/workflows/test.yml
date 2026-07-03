@@ -22,7 +22,7 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Run Tests
-        uses: ./actions/test
+        uses: cpdevtools/git-flow/actions/test@main
         with:
           mode: test-optional
           fail-fast: ${{ github.event.inputs.fail-fast || 'false' }}
