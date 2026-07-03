@@ -7,6 +7,7 @@ export default defineConfig({
     'json/index': 'src/json/index.ts',
     'artifacts/index': 'src/artifacts/index.ts',
     'runner/index': 'src/runner/index.ts',
+    'dep-versions/index': 'src/dep-versions/index.ts',
     'cli/bin': 'src/cli/bin.ts',
   },
   format: ['cjs'],

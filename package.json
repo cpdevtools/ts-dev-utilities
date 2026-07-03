@@ -24,6 +24,10 @@
     "./runner": {
       "types": "./dist/runner/index.d.ts",
       "default": "./dist/runner/index.js"
+    },
+    "./dep-versions": {
+      "types": "./dist/dep-versions/index.d.ts",
+      "default": "./dist/dep-versions/index.js"
     }
   },
   "bin": {
@@ -42,6 +46,8 @@
     "syncpack.fix": "syncpack fix-mismatches",
     "syncpack.format": "syncpack format",
     "syncpack.list": "syncpack list-mismatches",
+    "dep-versions.check": "devutil dep-versions check .publish/deps.yml",
+    "dep-versions.fix": "devutil dep-versions fix .publish/deps.yml",
     "github.actions.build": "pnpm run build",
     "github.actions.pack": "pnpm pack"
   },
