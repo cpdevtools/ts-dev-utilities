@@ -30,8 +30,8 @@
     },
     "fix": {
       "dependencies": [
-        "fix:syncpack",
-        "fix:git-remove-tags"
+        "fix.syncpack",
+        "fix.git-remove-tags"
       ]
     },
     "fix.deps": {
