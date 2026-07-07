@@ -64,9 +64,36 @@ export interface ReleaseAttachment {
 }
 
 /**
+ * Deploy artifact — a zip bundle produced by `gitflow pack-deploy`
+ * that gets uploaded to the draft release for consumption by a deploy service.
+ *
+ * `name` is the unique identifier for this deploy artifact within the project.
+ * It drives all generated names — staging directory, zip file, and env var:
+ *   DEPLOY_OUTPUT_DIR = <projectCwd>/.deploy-output/<safeName(name)>
+ *   zip              = ARTIFACT_OUTPUT_DIR/<safeName(name)>-deploy.zip
+ *
+ * A project may declare multiple deploy artifacts (e.g. separate staging/prod
+ * bundles) as long as each has a distinct name.
+ */
+export interface DeployArtifact {
+  type: 'deploy';
+  /**
+   * Unique name for this deploy artifact within the project.
+   * Used to derive DEPLOY_OUTPUT_DIR and the output zip filename.
+   * Typically matches the package name (e.g. '@org/my-service').
+   */
+  name: string;
+  /**
+   * Absolute path to the produced deploy.zip.
+   * Optional at declaration time — populated by `gitflow pack-deploy` after the zip is created.
+   */
+  path?: string;
+}
+
+/**
  * Union of all artifact types
  */
-export type Artifact = NpmArtifact | DockerArtifact | NuGetArtifact | ReleaseAttachment;
+export type Artifact = NpmArtifact | DockerArtifact | NuGetArtifact | ReleaseAttachment | DeployArtifact;
 
 /**
  * Project artifact descriptor

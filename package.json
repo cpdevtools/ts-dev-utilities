@@ -3,6 +3,7 @@
   "version": "0.0.0-MAIN",
   "private": true,
   "description": "TypeScript development utilities — workspace root",
+  "packageManager": "pnpm@11.5.0",
   "scripts": {
     "build": "devutil run build",
     "check": "wireit",
