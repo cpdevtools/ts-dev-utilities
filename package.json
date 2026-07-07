@@ -1,6 +1,7 @@
 {
   "name": "@cpdevtools/ts-dev-utilities",
   "version": "0.0.0-MAIN",
+  "private": true,
   "packageManager": "pnpm@11.5.0",
   "description": "TypeScript development utilities for project discovery, JSON operations, and common tooling",
   "main": "./dist/index.js",
