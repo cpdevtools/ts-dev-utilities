@@ -9,8 +9,8 @@ export interface NpmArtifact {
   type: 'npm';
   /** Package name (e.g., '@myorg/package-name') */
   name: string;
-  /** Path to .tgz file relative to project root */
-  path: string;
+  /** Path to .tgz file. Populated by `gitflow pack` — omit when declaring in release-artifacts.yml. */
+  path?: string;
   /** Registry IDs to publish to (Phase 3 will resolve full configs) */
   registries?: string[];
 }
@@ -22,16 +22,18 @@ export interface DockerArtifact {
   type: 'docker';
   /** Full image name including registry (e.g., 'ghcr.io/owner/image') */
   name: string;
-  /** Temporary tag used during Phase 2 (e.g., 'temp-abc1234') */
-  tempTag: string;
-  /** Final version tag for Phase 3 (e.g., '1.2.3') */
-  finalTag: string;
-  /** Image digest from registry */
-  digest: string;
-  /** Registry where temp image is stored */
-  registry: string;
-  /** ISO timestamp when image was pushed */
-  pushedAt: string;
+  /** Local Docker image tag to push (e.g. 'my-image:latest'). Defaults to name + ':latest'. */
+  localTag?: string;
+  /** Temporary registry tag. Populated by `gitflow pack` — do not set manually. */
+  tempTag?: string;
+  /** Final version tag for Phase 3. Populated by `gitflow pack` (= PROJECT_VERSION). */
+  finalTag?: string;
+  /** Image digest from registry. Populated by `gitflow pack`. */
+  digest?: string;
+  /** Registry where temp image is stored. Populated by `gitflow pack`. */
+  registry?: string;
+  /** ISO timestamp when image was pushed. Populated by `gitflow pack`. */
+  pushedAt?: string;
   /** Registry IDs to publish to (Phase 3 will resolve full configs) */
   registries?: string[];
 }
