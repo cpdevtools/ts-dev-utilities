@@ -2,3 +2,7 @@ packages:
   - 'packages/*'
 allowBuilds:
   esbuild: true
+minimumReleaseAgeExclude:
+  - '@cpdevtools/git-flow-cli@0.4.0-dev.5'
+  - '@cpdevtools/git-flow@0.4.0-dev.5'
+  - '@cpdevtools/ts-dev-utilities@0.4.0-dev.3'

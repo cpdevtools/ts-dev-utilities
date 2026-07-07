@@ -9,7 +9,7 @@
   "scripts": {
     "build": "wireit",
     "github.actions.build": "tsup",
-    "github.actions.pack": "pnpm pack",
+    "github.actions.pack": "gitflow pack",
     "typecheck": "wireit"
   },
   "dependencies": {
