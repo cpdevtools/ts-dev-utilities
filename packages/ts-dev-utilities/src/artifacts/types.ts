@@ -91,9 +91,26 @@ export interface DeployArtifact {
 }
 
 /**
+ * Custom / plugin-defined artifact type.
+ * Used when a project declares an artifact type that is not built in to git-flow.
+ * The plugin package must register a handler via `registerArtifactType` before
+ * any artifact of this type is dispatched.
+ */
+export interface CustomArtifact {
+  /** Any string key not matching a built-in type */
+  type: string;
+  /** Artifact name */
+  name: string;
+  /** Optional output file path */
+  path?: string;
+  /** Additional plugin-specific fields */
+  [key: string]: unknown;
+}
+
+/**
  * Union of all artifact types
  */
-export type Artifact = NpmArtifact | DockerArtifact | NuGetArtifact | ReleaseAttachment | DeployArtifact;
+export type Artifact = NpmArtifact | DockerArtifact | NuGetArtifact | ReleaseAttachment | DeployArtifact | CustomArtifact;
 
 /**
  * Project artifact descriptor
