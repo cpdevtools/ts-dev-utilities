@@ -1,125 +1,115 @@
 {
-  "name": "@cpdevtools/ts-dev-utilities-workspace",
+  "name": "@cpdevtools/ts-dev-utilities",
   "version": "0.0.0-MAIN",
-  "private": true,
-  "description": "TypeScript development utilities — workspace root",
-  "packageManager": "pnpm@11.5.0",
+  "description": "TypeScript development utilities for project discovery, JSON operations, and common tooling",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
   "scripts": {
-    "build": "devutil run build",
-    "check": "wireit",
-    "clean": "wireit",
-    "fix": "wireit",
-    "format": "wireit",
-    "lint": "devutil run lint",
-    "prepare": "wireit",
-    "reset": "wireit",
-    "test": "devutil run test",
-    "typecheck": "devutil run typecheck"
+    "build": "wireit",
+    "format": "prettier --write \"src/**/*.ts\"",
+    "github.actions.build": "tsup",
+    "github.actions.pack": "pnpm pack",
+    "lint": "wireit",
+    "test": "wireit",
+    "typecheck": "wireit"
+  },
+  "dependencies": {
+    "change-case": "^5.4.4",
+    "globby": "^14.0.2",
+    "jsonc-parser": "^3.3.1",
+    "yaml": "^2.8.2"
   },
   "devDependencies": {
-    "@cpdevtools/ts-dev-utilities-cli": "workspace:*",
     "@types/node": "^20.17.10",
     "@typescript-eslint/eslint-plugin": "^8.20.0",
     "@typescript-eslint/parser": "^8.20.0",
     "eslint": "^9.18.0",
-    "husky": "^9.1.7",
     "prettier": "^3.4.2",
-    "syncpack": "^13.0.0",
+    "tsup": "^8.3.5",
     "typescript": "^5.7.3",
-    "wireit": "^0.14.13"
+    "vitest": "^2.1.8"
   },
-  "keywords": [],
+  "keywords": [
+    "development",
+    "project-discovery",
+    "typescript",
+    "utilities"
+  ],
   "author": "CPDevTools",
   "license": "MIT",
-  "repository": "cpdevtools/ts-dev-utilities.git",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/cpdevtools/ts-dev-utilities.git",
+    "directory": "packages/ts-dev-utilities"
+  },
+  "bugs": "https://github.com/cpdevtools/ts-dev-utilities/issues",
+  "homepage": "https://github.com/cpdevtools/ts-dev-utilities#readme",
   "engines": {
     "node": ">=24"
   },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./project": {
+      "types": "./dist/project/index.d.ts",
+      "default": "./dist/project/index.js"
+    },
+    "./json": {
+      "types": "./dist/json/index.d.ts",
+      "default": "./dist/json/index.js"
+    },
+    "./artifacts": {
+      "types": "./dist/artifacts/index.d.ts",
+      "default": "./dist/artifacts/index.js"
+    },
+    "./runner": {
+      "types": "./dist/runner/index.d.ts",
+      "default": "./dist/runner/index.js"
+    },
+    "./dep-versions": {
+      "types": "./dist/dep-versions/index.d.ts",
+      "default": "./dist/dep-versions/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
   "wireit": {
-    "prepare": {
-      "dependencies": [
-        "prepare.husky"
-      ]
-    },
-    "prepare.husky": {
-      "command": "husky",
+    "build": {
+      "command": "tsup",
       "files": [
-        ".husky/**"
+        "src/**/*.ts",
+        "tsup.config.ts",
+        "tsconfig.json"
       ],
-      "output": []
-    },
-    "fix": {
-      "dependencies": [
-        "fix.syncpack",
-        "fix.git-remove-tags",
-        "format"
+      "output": [
+        "dist/**"
       ]
     },
-    "fix.deps": {
-      "command": "devutil dep-versions fix .publish/deps.yml"
-    },
-    "fix.git-remove-tags": {
-      "command": "git tag | xargs -r git tag -d"
-    },
-    "fix.syncpack": {
-      "command": "syncpack fix-mismatches",
+    "test": {
+      "command": "vitest run",
       "dependencies": [
-        "fix.deps"
+        "build"
+      ],
+      "files": [
+        "src/**/*.ts",
+        "vitest.config.ts"
       ]
     },
-    "format": {
-      "dependencies": [
-        "format.prettier",
-        "format.projects"
+    "typecheck": {
+      "command": "tsc --noEmit",
+      "files": [
+        "src/**/*.ts",
+        "tsconfig.json"
       ]
     },
-    "format.syncpack": {
-      "command": "syncpack format"
-    },
-    "format.prettier": {
-      "command": "prettier --write \"**/*.{ts,js,json,md,yml}\" --ignore-path .gitignore",
-      "dependencies": [
-        "format.syncpack"
+    "lint": {
+      "command": "eslint src --ext .ts",
+      "files": [
+        "src/**/*.ts"
       ]
-    },
-    "format.projects": {
-      "command": "devutil run format"
-    },
-    "check": {
-      "dependencies": [
-        "check.deps",
-        "check.syncpack"
-      ]
-    },
-    "check.deps": {
-      "command": "devutil dep-versions check .publish/deps.yml"
-    },
-    "check.syncpack": {
-      "command": "syncpack list-mismatches"
-    },
-    "clean": {
-      "dependencies": [
-        "clean.git",
-        "pnpm.install"
-      ]
-    },
-    "clean.git": {
-      "command": "git clean -dfX",
-      "cache": false
-    },
-    "reset": {
-      "dependencies": [
-        "reset.git",
-        "pnpm.install"
-      ]
-    },
-    "reset.git": {
-      "command": "git reset --hard",
-      "cache": false
-    },
-    "pnpm.install": {
-      "command": "pnpm install",
-      "cache": false
     }
   }
 }
