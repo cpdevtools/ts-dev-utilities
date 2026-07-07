@@ -110,7 +110,13 @@ export interface CustomArtifact {
 /**
  * Union of all artifact types
  */
-export type Artifact = NpmArtifact | DockerArtifact | NuGetArtifact | ReleaseAttachment | DeployArtifact | CustomArtifact;
+export type Artifact =
+  | NpmArtifact
+  | DockerArtifact
+  | NuGetArtifact
+  | ReleaseAttachment
+  | DeployArtifact
+  | CustomArtifact;
 
 /**
  * Project artifact descriptor
