@@ -40,8 +40,10 @@ export interface RunOptions {
    * Called after a project becomes ready (all its workspace dependencies have
    * passed) and before its script(s) are run.
    * If this hook throws, the project is marked as failed and afterTask is NOT called.
+   * May return env vars to add to that project's scripts; `env` cannot vary per
+   * project, so this is the only way to pass per-project values.
    */
-  beforeTask?: (project: Project) => Promise<void> | void;
+  beforeTask?: (project: Project) => Promise<void | Record<string, string>> | void | Record<string, string>;
 
   /**
    * Called after the project's script(s) have finished (passed, failed, or

@@ -169,17 +169,12 @@ export async function runScripts(options: RunOptions): Promise<RunSummary> {
     }
 
     const startTime = Date.now();
-    const spawnEnv: NodeJS.ProcessEnv = {
-      ...process.env,
-      ...env,
-      PROJECT_NAME: name,
-      PROJECT_CWD: node.project.directory,
-    };
 
     // beforeTask hook — runs before any script; failure marks task failed
+    let taskEnv: Record<string, string> | undefined;
     if (beforeTask) {
       try {
-        await beforeTask(node.project);
+        taskEnv = (await beforeTask(node.project)) || undefined;
       } catch (err) {
         states.set(name, 'failed');
         taskResults.set(
@@ -189,6 +184,14 @@ export async function runScripts(options: RunOptions): Promise<RunSummary> {
         return; // afterTask is NOT called — scripts never ran
       }
     }
+
+    const spawnEnv: NodeJS.ProcessEnv = {
+      ...process.env,
+      ...env,
+      PROJECT_NAME: name,
+      PROJECT_CWD: node.project.directory,
+      ...taskEnv,
+    };
 
     let combinedOutput = '';
     let anyTruncated = false;

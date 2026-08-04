@@ -368,6 +368,44 @@ describe('runScripts: beforeTask hook', () => {
     expect(calls).toEqual(['before:pkg-a', 'exec:pkg-a']);
   });
 
+  it('merges env returned by beforeTask, per project', async () => {
+    const projects = [makeProject('pkg-a'), makeProject('pkg-b')];
+    const seen: Record<string, string | undefined> = {};
+
+    const execFn: MockExecFn = async (_s, _c, env) => {
+      seen[env.PROJECT_NAME!] = env.PROJECT_VERSION;
+      return { exitCode: 0, output: '', truncated: false };
+    };
+
+    const summary = await runScripts(
+      baseOptions(projects, execFn, {
+        beforeTask: (p) => ({ PROJECT_VERSION: p.name === 'pkg-a' ? '1.2.3' : '4.5.6' }),
+      }),
+    );
+
+    expect(summary.passed).toHaveLength(2);
+    expect(seen).toEqual({ 'pkg-a': '1.2.3', 'pkg-b': '4.5.6' });
+  });
+
+  it('beforeTask env overrides the static env', async () => {
+    const projects = [makeProject('pkg-a')];
+    let seen: string | undefined;
+
+    const execFn: MockExecFn = async (_s, _c, env) => {
+      seen = env.SHARED;
+      return { exitCode: 0, output: '', truncated: false };
+    };
+
+    await runScripts(
+      baseOptions(projects, execFn, {
+        env: { SHARED: 'static' },
+        beforeTask: () => ({ SHARED: 'per-task' }),
+      }),
+    );
+
+    expect(seen).toBe('per-task');
+  });
+
   it('beforeTask failure marks project failed without running scripts', async () => {
     const projects = [makeProject('pkg-a')];
     let scriptRan = false;
