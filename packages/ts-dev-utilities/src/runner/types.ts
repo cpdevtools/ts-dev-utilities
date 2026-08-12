@@ -43,7 +43,9 @@ export interface RunOptions {
    * May return env vars to add to that project's scripts; `env` cannot vary per
    * project, so this is the only way to pass per-project values.
    */
-  beforeTask?: (project: Project) => Promise<void | Record<string, string>> | void | Record<string, string>;
+  beforeTask?: (
+    project: Project,
+  ) => Promise<void | Record<string, string>> | void | Record<string, string>;
 
   /**
    * Called after the project's script(s) have finished (passed, failed, or

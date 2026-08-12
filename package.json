@@ -9,9 +9,11 @@
     "clean": "wireit",
     "fix": "wireit",
     "format": "wireit",
+    "gitflow": "gitflow",
     "lint": "devutil run lint",
     "prepare": "wireit",
     "reset": "wireit",
+    "set-version": "gitflow version",
     "test": "devutil run test",
     "typecheck": "devutil run typecheck"
   },

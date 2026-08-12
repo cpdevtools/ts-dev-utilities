@@ -1,7 +1,6 @@
 {
   "name": "@cpdevtools/ts-dev-utilities-cli",
   "version": "0.0.0-MAIN",
-  "packageManager": "pnpm@11.5.0",
   "description": "CLI tools for TypeScript development utilities (provides the devutil binary)",
   "bin": {
     "devutil": "./dist/bin.js"
@@ -41,6 +40,7 @@
   "files": [
     "dist"
   ],
+  "packageManager": "pnpm@11.5.0",
   "wireit": {
     "build": {
       "command": "tsup",
