@@ -49,6 +49,10 @@ async function scan(
       for (const regex of [fromRegex, imageRegex]) {
         content = content.replace(regex, (match, prefix, currentTag) => {
           if (currentTag === targetTag) return match;
+          // An interpolated tag is supplied at build or deploy time — a deploy
+          // bundle's `image: repo:${DEPLOY_IMAGE_TAG}` is the released version,
+          // not a pin. Baking a literal over it would ship the wrong image.
+          if (currentTag.startsWith('$')) return match;
           fileChanges.push({ file, name: imageName, from: currentTag, to: targetTag });
           return write ? `${prefix}:${targetTag}` : match;
         });

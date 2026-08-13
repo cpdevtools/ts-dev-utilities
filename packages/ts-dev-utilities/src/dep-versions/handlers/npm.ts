@@ -26,6 +26,17 @@ const DOCKERFILE_PATTERNS = [
 const IGNORE = ['**/node_modules/**', '**/dist/**', '**/.pnpm-prod/**'];
 
 /**
+ * `workspace:`, `link:`, `file:`, `portal:`, `catalog:`, `npm:` aliases, git and
+ * tarball URLs — anything carrying a protocol. These say *where a dependency
+ * comes from*, not which version to take, so there is no version here to pin and
+ * overwriting one with a registry range changes resolution rather than tightening
+ * it. Replacing `workspace:*` in particular swaps a live workspace link for a
+ * published package, so a package silently builds against its last release
+ * instead of the sibling source. Plain semver ranges never contain a colon.
+ */
+const PROTOCOL_SPECIFIER = /^[a-z][a-z0-9+.-]*:/i;
+
+/**
  * Binds the next `ARG` to a package name, for the common shape where the
  * version is held in a build arg and interpolated at the install site:
  *
@@ -90,10 +101,13 @@ async function scanPackageJson(
     const section = pkg[field] as Record<string, string> | undefined;
     if (!section) continue;
     for (const [name, targetVersion] of Object.entries(deps)) {
-      if (name in section && section[name] !== targetVersion) {
-        changes.push({ file: path, name, from: section[name]!, to: targetVersion });
-        if (write) section[name] = targetVersion;
-      }
+      if (!(name in section)) continue;
+
+      const current = section[name]!;
+      if (current === targetVersion || PROTOCOL_SPECIFIER.test(current)) continue;
+
+      changes.push({ file: path, name, from: current, to: targetVersion });
+      if (write) section[name] = targetVersion;
     }
   }
 
