@@ -2,9 +2,13 @@ packages:
   - 'packages/*'
 allowBuilds:
   esbuild: true
+# Bare package names, not name@version. pnpm stops at the first entry matching a
+# package, so a pinned entry shadows every later one for that same package — a
+# stale '@0.4.0-dev.5' pin sat ahead of the '@0.4.20-rc.12' one and silently
+# disabled it, failing CI on a release that was explicitly meant to be allowed.
+# These three are developed in lockstep with this repo and are expected to be
+# consumed the day they publish, so exclude them by name and never revisit.
 minimumReleaseAgeExclude:
-  - '@cpdevtools/git-flow-cli@0.4.0-dev.5'
-  - '@cpdevtools/git-flow@0.4.0-dev.5'
-  - '@cpdevtools/ts-dev-utilities@0.4.0-dev.3'
-  - '@cpdevtools/git-flow-cli@0.4.20-rc.12'
-  - '@cpdevtools/git-flow@0.4.20-rc.12'
+  - '@cpdevtools/git-flow'
+  - '@cpdevtools/git-flow-cli'
+  - '@cpdevtools/ts-dev-utilities'
