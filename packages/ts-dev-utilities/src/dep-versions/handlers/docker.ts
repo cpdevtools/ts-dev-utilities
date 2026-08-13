@@ -2,15 +2,20 @@ import { readFile, writeFile } from 'node:fs/promises';
 import { globby } from 'globby';
 import type { DepChange, DepVersionHandler } from '../types.js';
 
+// Both spellings of the Dockerfile: globby is case-sensitive on Linux, so a
+// repo using `dockerfile` was invisible to this handler entirely.
 const GLOB_PATTERNS = [
   '**/Dockerfile',
   '**/Dockerfile.*',
+  '**/dockerfile',
+  '**/dockerfile.*',
+  '**/*.dockerfile',
   '**/docker-compose.yml',
   '**/docker-compose.yaml',
   '**/docker-compose.*.yml',
   '**/docker-compose.*.yaml',
 ];
-const IGNORE = ['**/node_modules/**'];
+const IGNORE = ['**/node_modules/**', '**/dist/**', '**/.pnpm-prod/**'];
 
 function escapeRegex(s: string): string {
   return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
