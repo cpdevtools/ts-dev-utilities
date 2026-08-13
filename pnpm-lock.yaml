@@ -11,11 +11,11 @@ importers:
   .:
     devDependencies:
       '@cpdevtools/git-flow':
-        specifier: 0.4.20-rc.12
-        version: 0.4.20-rc.12(chokidar@3.6.0)
+        specifier: 0.4.20-rc.13
+        version: 0.4.20-rc.13(chokidar@3.6.0)
       '@cpdevtools/git-flow-cli':
-        specifier: 0.4.20-rc.12
-        version: 0.4.20-rc.12(chokidar@3.6.0)
+        specifier: 0.4.20-rc.13
+        version: 0.4.20-rc.13(chokidar@3.6.0)
       '@cpdevtools/ts-dev-utilities-cli':
         specifier: workspace:*
         version: link:packages/cli
@@ -128,17 +128,17 @@ packages:
     resolution: {integrity: sha512-qehxGkRj55h/ff8EMaJ+cYhyaKlHIxqYDn682wQD7RNp9UujOQsHog2uS0r2vzr4pW+sXf90NeeayjcNaX3fFg==}
     engines: {node: '>=6.9.0'}
 
-  '@cpdevtools/git-flow-cli@0.4.20-rc.12':
-    resolution: {integrity: sha512-smlpT606HBVDnMYg/kRce8PXlM9idQ/QWzaaJVJTV7YRXSZRI7XT8Q0DSKwX8RmiUFa5jklEVoZM7nOwGASXnw==, tarball: https://npm.pkg.github.com/download/@cpdevtools/git-flow-cli/0.4.20-rc.12/e51f78d9dda37a42f74af9533b96f8cebad703c3}
+  '@cpdevtools/git-flow-cli@0.4.20-rc.13':
+    resolution: {integrity: sha512-pQ2hep+jIgzWfOHbApWyUTbkXbsS32Ff7om6DluN9W+md/fmJD78n8TmNJ/B/UxnvoPriq5RVpOff4eHWq6/FQ==, tarball: https://npm.pkg.github.com/download/@cpdevtools/git-flow-cli/0.4.20-rc.13/206c023c6b5c599ee774842e8420fec026971eb3}
     engines: {node: '>=24'}
     hasBin: true
 
-  '@cpdevtools/git-flow@0.4.20-rc.12':
-    resolution: {integrity: sha512-TPIE91cVzDRFZnq2KI6/ItlITHTgAe3clvWgfQFGO//iV5b08FWXy/mfuOeLH1h7cY42yiIP6npj46eeG8B2MQ==, tarball: https://npm.pkg.github.com/download/@cpdevtools/git-flow/0.4.20-rc.12/bbebb11564e3fafcf16ff2be1e40ab7ac2772c4c}
+  '@cpdevtools/git-flow@0.4.20-rc.13':
+    resolution: {integrity: sha512-SR1Rn+Nx7X+IYVQcyjt0I8t7tkXZxSC2jkvzRVj63HDsAbaYNt+VHO5KctyLrk2AgID/48siWjC/o8qBTVyZZA==, tarball: https://npm.pkg.github.com/download/@cpdevtools/git-flow/0.4.20-rc.13/48dd28623f4f3f3858d7ce7c41c9d90ea20e1aa7}
     engines: {node: '>=24'}
 
-  '@cpdevtools/ts-dev-utilities@0.4.0-dev.3':
-    resolution: {integrity: sha512-TCnJwq003+/gA1OFW8SUWEffbQb+M8aU5d3eUaQXL90P2olKaQJckMKzjlPWEaJUwpnWFOjojz8zCdMb+AFEeg==, tarball: https://npm.pkg.github.com/download/@cpdevtools/ts-dev-utilities/0.4.0-dev.3/42ac21111e62aa640d5cdaefe7627189f12dbacd}
+  '@cpdevtools/ts-dev-utilities@0.4.1-rc.1':
+    resolution: {integrity: sha512-BgvHBg1R0AsZf7I/ns2VZGabiUGLEvud4APO4V/p/pSJiJlz8+vruMDGX8EOkwwKWnnHOw7m5mVej7POAdWgJA==, tarball: https://npm.pkg.github.com/download/@cpdevtools/ts-dev-utilities/0.4.1-rc.1/64154ffe7ad92049586c82ca1fa89fdb1f61fa3f}
     engines: {node: '>=24'}
 
   '@esbuild/aix-ppc64@0.21.5':
@@ -1945,9 +1945,9 @@ snapshots:
 
   '@babel/helper-validator-identifier@7.29.7': {}
 
-  '@cpdevtools/git-flow-cli@0.4.20-rc.12(chokidar@3.6.0)':
+  '@cpdevtools/git-flow-cli@0.4.20-rc.13(chokidar@3.6.0)':
     dependencies:
-      '@cpdevtools/git-flow': 0.4.20-rc.12(chokidar@3.6.0)
+      '@cpdevtools/git-flow': 0.4.20-rc.13(chokidar@3.6.0)
       '@oclif/core': 4.11.14
       '@oclif/plugin-autocomplete': 3.2.53
       '@oclif/plugin-help': 6.2.53
@@ -1959,11 +1959,11 @@ snapshots:
       - chokidar
       - supports-color
 
-  '@cpdevtools/git-flow@0.4.20-rc.12(chokidar@3.6.0)':
+  '@cpdevtools/git-flow@0.4.20-rc.13(chokidar@3.6.0)':
     dependencies:
       '@actions/core': 1.11.1
       '@actions/github': 6.0.1
-      '@cpdevtools/ts-dev-utilities': 0.4.0-dev.3
+      '@cpdevtools/ts-dev-utilities': 0.4.1-rc.1
       fast-glob: 3.3.3
       nunjucks: 3.2.4(chokidar@3.6.0)
       semver: 7.8.5
@@ -1972,7 +1972,7 @@ snapshots:
     transitivePeerDependencies:
       - chokidar
 
-  '@cpdevtools/ts-dev-utilities@0.4.0-dev.3':
+  '@cpdevtools/ts-dev-utilities@0.4.1-rc.1':
     dependencies:
       change-case: 5.4.4
       globby: 14.1.0

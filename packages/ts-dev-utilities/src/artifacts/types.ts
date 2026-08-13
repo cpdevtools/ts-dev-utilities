@@ -19,7 +19,7 @@ export interface NpmArtifact {
  * Docker image artifact
  */
 export interface DockerArtifact {
-  type: 'docker';
+  type: 'docker-image';
   /** Full image name including registry (e.g., 'ghcr.io/owner/image') */
   name: string;
   /** Local Docker image tag to push (e.g. 'my-image:latest'). Defaults to name + ':latest'. */
