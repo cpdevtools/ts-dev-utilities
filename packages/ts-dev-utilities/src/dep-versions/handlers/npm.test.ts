@@ -122,3 +122,124 @@ describe('npmHandler', () => {
     }
   });
 });
+
+describe('npmHandler: workspace root', () => {
+  let dir: string;
+
+  beforeEach(async () => {
+    dir = join(tmpdir(), `test-npm-root-${Date.now()}`);
+    await mkdir(dir, { recursive: true });
+    // A pnpm workspace, so discoverProjects scopes to members and skips the root.
+    await writeFile(join(dir, 'pnpm-workspace.yaml'), "packages:\n  - 'packages/*'\n");
+    await mkdir(join(dir, 'packages', 'pkg-a'), { recursive: true });
+    await writeFile(
+      join(dir, 'packages', 'pkg-a', 'package.json'),
+      JSON.stringify({ name: 'pkg-a', devDependencies: { typescript: '^5.0.0' } }),
+    );
+  });
+
+  afterEach(async () => {
+    await rm(dir, { recursive: true, force: true });
+  });
+
+  it('check: sees drift in the root manifest, not just members', async () => {
+    await writeFile(
+      join(dir, 'package.json'),
+      JSON.stringify({ name: 'root', private: true, devDependencies: { typescript: '^5.1.0' } }),
+    );
+
+    const changes = await npmHandler.check(dir, { typescript: '^5.9.3' });
+
+    // Without the root the toolchain pin drifts while `check` reports green.
+    expect(changes.map((c) => c.from).sort()).toEqual(['^5.0.0', '^5.1.0']);
+  });
+
+  it('fix: updates the root manifest', async () => {
+    await writeFile(
+      join(dir, 'package.json'),
+      JSON.stringify({ name: 'root', private: true, devDependencies: { typescript: '^5.1.0' } }),
+    );
+
+    await npmHandler.fix(dir, { typescript: '^5.9.3' });
+
+    const root = JSON.parse(await readFile(join(dir, 'package.json'), 'utf-8'));
+    expect(root.devDependencies.typescript).toBe('^5.9.3');
+  });
+
+  it('does not report the root twice when it is also a member', async () => {
+    await rm(join(dir, 'pnpm-workspace.yaml'));
+    await writeFile(
+      join(dir, 'package.json'),
+      JSON.stringify({ name: 'root', devDependencies: { typescript: '^5.1.0' } }),
+    );
+
+    const changes = await npmHandler.check(dir, { typescript: '^5.9.3' });
+
+    expect(changes.filter((c) => c.file === join(dir, 'package.json'))).toHaveLength(1);
+  });
+});
+
+describe('npmHandler: dockerfiles', () => {
+  let dir: string;
+
+  beforeEach(async () => {
+    dir = join(tmpdir(), `test-npm-docker-${Date.now()}`);
+    await mkdir(dir, { recursive: true });
+  });
+
+  afterEach(async () => {
+    await rm(dir, { recursive: true, force: true });
+  });
+
+  it('fix: updates an annotated ARG in a lowercase dockerfile', async () => {
+    const path = join(dir, 'dockerfile');
+    await writeFile(
+      path,
+      [
+        'FROM node:24',
+        '# dep-version: @scope/some-cli',
+        'ARG SOME_CLI_VERSION=1.2.3',
+        'RUN npm install -g "@scope/some-cli@${SOME_CLI_VERSION}"',
+        '',
+      ].join('\n'),
+    );
+
+    const changes = await npmHandler.fix(dir, { '@scope/some-cli': '2.0.0' });
+
+    expect(changes).toHaveLength(1);
+    expect(changes[0]).toMatchObject({ name: '@scope/some-cli', from: '1.2.3', to: '2.0.0' });
+
+    const updated = await readFile(path, 'utf-8');
+    expect(updated).toContain('ARG SOME_CLI_VERSION=2.0.0');
+    // The interpolated install site must survive untouched.
+    expect(updated).toContain('"@scope/some-cli@${SOME_CLI_VERSION}"');
+  });
+
+  it('leaves an unannotated ARG alone', async () => {
+    await writeFile(join(dir, 'Dockerfile'), 'ARG SOME_CLI_VERSION=1.2.3\n');
+
+    const changes = await npmHandler.check(dir, { '@scope/some-cli': '2.0.0' });
+
+    expect(changes).toHaveLength(0);
+  });
+
+  it('fix: updates a literal name@version install site', async () => {
+    const path = join(dir, 'Dockerfile');
+    await writeFile(path, 'RUN npm install -g some-cli@1.2.3\n');
+
+    const changes = await npmHandler.fix(dir, { 'some-cli': '2.0.0' });
+
+    expect(changes).toHaveLength(1);
+    expect(await readFile(path, 'utf-8')).toBe('RUN npm install -g some-cli@2.0.0\n');
+  });
+
+  it('check: does not write dockerfiles', async () => {
+    const path = join(dir, 'dockerfile');
+    const original = '# dep-version: @scope/some-cli\nARG SOME_CLI_VERSION=1.2.3\n';
+    await writeFile(path, original);
+
+    await npmHandler.check(dir, { '@scope/some-cli': '2.0.0' });
+
+    expect(await readFile(path, 'utf-8')).toBe(original);
+  });
+});

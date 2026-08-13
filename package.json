@@ -9,6 +9,7 @@
     "clean": "wireit",
     "fix": "wireit",
     "format": "wireit",
+    "gitflow": "gitflow",
     "lint": "devutil run lint",
     "prepare": "wireit",
     "reset": "wireit",
@@ -16,8 +17,8 @@
     "typecheck": "devutil run typecheck"
   },
   "devDependencies": {
-    "@cpdevtools/git-flow": "^0.4.0-dev.5",
-    "@cpdevtools/git-flow-cli": "^0.4.0-dev.5",
+    "@cpdevtools/git-flow": "0.4.20-rc.12",
+    "@cpdevtools/git-flow-cli": "0.4.20-rc.12",
     "@cpdevtools/ts-dev-utilities-cli": "workspace:*",
     "@types/node": "^20.17.10",
     "@typescript-eslint/eslint-plugin": "^8.20.0",
