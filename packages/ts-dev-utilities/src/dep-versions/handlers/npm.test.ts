@@ -243,3 +243,59 @@ describe('npmHandler: dockerfiles', () => {
     expect(await readFile(path, 'utf-8')).toBe(original);
   });
 });
+
+describe('npmHandler: protocol specifiers', () => {
+  let dir: string;
+
+  beforeEach(async () => {
+    dir = join(tmpdir(), `test-npm-proto-${Date.now()}`);
+    await mkdir(join(dir, 'pkg-a'), { recursive: true });
+  });
+
+  afterEach(async () => {
+    await rm(dir, { recursive: true, force: true });
+  });
+
+  // These say where a dependency comes from, not which version to take.
+  // Rewriting workspace:* into a registry range makes a package build against
+  // its last published release instead of the sibling source.
+  it.each([
+    ['workspace:*', 'workspace protocol'],
+    ['link:../other', 'link protocol'],
+    ['file:../other', 'file protocol'],
+    ['catalog:', 'catalog protocol'],
+    ['npm:other-pkg@1.0.0', 'npm alias'],
+    ['github:owner/repo', 'github shorthand'],
+  ])('leaves %s alone (%s)', async (specifier) => {
+    const pkgPath = join(dir, 'pkg-a', 'package.json');
+    await writeFile(
+      pkgPath,
+      JSON.stringify({ name: 'pkg-a', dependencies: { 'some-dep': specifier } }),
+    );
+
+    const changes = await npmHandler.fix(dir, { 'some-dep': '^1.2.3' });
+
+    expect(changes).toHaveLength(0);
+    const updated = JSON.parse(await readFile(pkgPath, 'utf-8'));
+    expect(updated.dependencies['some-dep']).toBe(specifier);
+  });
+
+  it('still pins a plain range in the same manifest', async () => {
+    const pkgPath = join(dir, 'pkg-a', 'package.json');
+    await writeFile(
+      pkgPath,
+      JSON.stringify({
+        name: 'pkg-a',
+        dependencies: { linked: 'workspace:*', normal: '^1.0.0' },
+      }),
+    );
+
+    const changes = await npmHandler.fix(dir, { linked: '^2.0.0', normal: '^2.0.0' });
+
+    expect(changes).toHaveLength(1);
+    expect(changes[0]).toMatchObject({ name: 'normal', from: '^1.0.0', to: '^2.0.0' });
+    const updated = JSON.parse(await readFile(pkgPath, 'utf-8'));
+    expect(updated.dependencies.linked).toBe('workspace:*');
+    expect(updated.dependencies.normal).toBe('^2.0.0');
+  });
+});
