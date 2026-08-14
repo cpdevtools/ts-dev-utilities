@@ -88,7 +88,7 @@ Defaults: `concurrency: Infinity`, `failFast: false`, `cwd: process.cwd()`,
 | `ProjectArtifactDescriptor` | type     | `project`, `artifacts: Artifact[]`                                                                             |
 | `Artifact`                  | type     | Union of the six below                                                                                         |
 | `NpmArtifact`               | type     | `type: 'npm'`                                                                                                  |
-| `DockerArtifact`            | type     | `type: 'docker-image'` — renamed from `'docker'`                                                               |
+| `DockerArtifact`            | type     | `type: 'docker-image'`                                                                                         |
 | `NuGetArtifact`             | type     | `type: 'nuget'`                                                                                                |
 | `ReleaseAttachment`         | type     | `type: 'release-attachment'`                                                                                   |
 | `DeployArtifact`            | type     | `type: 'deploy'`                                                                                               |

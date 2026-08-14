@@ -56,14 +56,13 @@ dependency graph. It knows nothing about releases, artifacts, tags, or GitHub. A
 GitHub-specific — annotations, step summaries, mode presets — belongs in git-flow's `test` action,
 which is a thin adapter over `runScripts`.
 
-**No pass tracking, no change detection.** An earlier design persisted per-project "pass" state as
-git tags pushed to origin, with a cleanup workflow to garbage-collect them. It was prone to
-concurrency races and stale caches, and was dropped entirely. Every run executes the targeted
-scripts across the whole graph.
+**No pass tracking, no change detection.** Every run executes the targeted scripts across the whole
+graph. Nothing is persisted between runs, so there is no cache to go stale and no shared state for
+concurrent runs to race over.
 
 **Ready-set, not waves.** A project starts the moment all of its workspace dependencies have
-passed — not when its whole topological tier finishes. `getTopologicalBatches()` still exists for
-batch-style consumers, but the scheduler does not use it.
+passed — not when its whole topological tier finishes. `getTopologicalBatches()` serves batch-style
+consumers; the scheduler does not use it.
 
 **Minimal dependencies.** Process execution is plain `node:child_process`; concurrency is a
 hand-rolled ready-set loop rather than `p-limit`. The CLI uses a ~20-line argument parser rather
@@ -94,9 +93,8 @@ minimumReleaseAgeExclude:
 ```
 
 > Entries are **bare package names, not `name@version`**. pnpm stops at the first entry matching a
-> package, so a pinned entry shadows every later one for that same package. A stale pin once sat
-> ahead of the current one and silently disabled it, failing CI on a release that was explicitly
-> meant to be allowed.
+> package, so a pinned entry shadows every later one for that same package — and the shadowing is
+> silent, surfacing only as CI failing on a release that was explicitly meant to be allowed.
 
 ## Build output
 

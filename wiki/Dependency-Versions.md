@@ -74,8 +74,8 @@ deploy time. A deploy bundle's `image: repo:${DEPLOY_IMAGE_TAG}` is the released
 pin; baking a literal over it ships the wrong image.
 
 **Both Dockerfile spellings are matched.** globby is case-sensitive on Linux, so `Dockerfile`,
-`dockerfile`, `*.dockerfile` and the `.suffix` forms are all listed explicitly. A repo using the
-lowercase spelling was once invisible to the handler entirely.
+`dockerfile`, `*.dockerfile` and the `.suffix` forms are all listed explicitly — otherwise a repo
+using the lowercase spelling is invisible to the handler entirely.
 
 ## npm versions inside Dockerfiles
 

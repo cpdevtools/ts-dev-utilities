@@ -1,0 +1,26 @@
+name: Publish Wiki
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'wiki/**'
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: 'Report what would change without pushing'
+        type: choice
+        options:
+          - 'false'
+          - 'true'
+        default: 'false'
+
+jobs:
+  publish-wiki:
+    uses: cpdevtools/git-flow/.github/workflows/publish-wiki.yml@main
+    with:
+      source: wiki
+      dry_run: ${{ inputs.dry_run || 'false' }}
+    secrets:
+      token: ${{ secrets.GITHUB_TOKEN }}

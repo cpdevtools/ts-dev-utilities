@@ -59,11 +59,6 @@ interface ProjectArtifactDescriptor {
 
 ### `docker-image`
 
-> ⚠️ **This type was previously `docker`.** The plugin-system work renamed it. A repo bumping
-> git-flow past that change must rename `type: docker` → `type: docker-image` in its
-> `release-artifacts.yml` in the same commit, or build-pack fails with
-> `Unknown artifact type: 'docker'`.
-
 | Field                                                    | Notes                                                          |
 | -------------------------------------------------------- | -------------------------------------------------------------- |
 | `name`                                                   | Full image name including registry, e.g. `ghcr.io/owner/image` |

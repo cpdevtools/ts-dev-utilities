@@ -1,7 +1,7 @@
 # Gotchas
 
-Behaviours that are correct by design but surprising in practice. Most of these have already caused
-a real defect somewhere.
+Behaviours that are correct by design but surprising in practice — the ones most likely to cost you
+an afternoon.
 
 ## A green test run that tested nothing
 
@@ -52,17 +52,9 @@ time, not a pin. The docker handler skips any tag starting with `$`, and the npm
 
 ## `minimumReleaseAgeExclude` entries must be bare names
 
-pnpm stops at the first entry matching a package, so `'@cpdevtools/git-flow@0.4.0-dev.5'` shadows
-every later entry for that package. A stale pin once sat ahead of the current one and silently
-disabled it, failing CI on a release that was explicitly meant to be allowed. List bare package
-names only.
-
-## `type: docker` is now `type: docker-image`
-
-The plugin-system work in git-flow renamed the docker artifact type. A repo bumping git-flow past
-that change must rename `type: docker` → `type: docker-image` in its `release-artifacts.yml` **in
-the same commit**, or build-pack fails with `Unknown artifact type: 'docker'`. See
-[Artifacts](Artifacts).
+pnpm stops at the first entry matching a package, so `'@cpdevtools/git-flow@1.0.0-rc.0'` shadows
+every later entry for that package. The shadowing is silent — it surfaces as CI failing on a
+release that was explicitly meant to be allowed. List bare package names only.
 
 ## The packages are CommonJS
 

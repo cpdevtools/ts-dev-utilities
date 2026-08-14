@@ -115,3 +115,25 @@ Four places, all required, or the build succeeds and the import fails at runtime
 
 Remember the build is **CJS only**; an ESM-only dependency has to be added to `noExternal` so tsup
 inlines it, as `globby` is.
+
+## Editing these pages
+
+This wiki is generated from the [`wiki/`](https://github.com/cpdevtools/ts-dev-utilities/tree/main/wiki)
+directory of the code repository. **Edit the files there, in a normal PR** — pushing to `main` runs
+`publish-wiki.yml`, which calls git-flow's
+[`publish-wiki`](https://github.com/cpdevtools/git-flow/tree/main/actions/publish-wiki) action and
+mirrors the directory into the wiki.
+
+Two consequences:
+
+- Anything written through the wiki's own edit UI is overwritten by the next sync.
+- The sync is a mirror, so deleting a page from `wiki/` deletes it from the wiki.
+
+Pages are prettier-formatted along with the rest of the repo (`wiki/` is not in `.prettierignore`),
+so `pnpm format` keeps them consistent. Filenames are page titles — `Getting-Started.md` publishes as
+_Getting Started_ — and `_Sidebar.md` / `_Footer.md` are the navigation panel and footer. Link
+between pages by filename without the extension; relative links into the code repo do not resolve
+from a wiki, so use full URLs for those.
+
+A docs-only change still opens a release PR, since `create-release-pr.yml` runs on every push. Merge
+or leave it as you would for any other non-release commit.

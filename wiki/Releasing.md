@@ -86,9 +86,8 @@ minimumReleaseAgeExclude:
 ```
 
 Entries must be **bare package names**. pnpm stops at the first entry matching a package, so a
-`name@version` pin shadows every later entry for that package — a stale pin once sat ahead of the
-current one and silently disabled it, failing CI on a release that was explicitly meant to be
-allowed.
+`name@version` pin shadows every later entry for that package, silently — it surfaces as CI failing
+on a release that was explicitly meant to be allowed.
 
 ## Checklist before merging a release PR
 

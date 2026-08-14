@@ -55,7 +55,7 @@ a recursive `**/package.json` search.
 
 - **Symlinked directories are never traversed** (`followSymbolicLinks: false`). Real workspace
   members are real directories, and following symlinks can recurse infinitely through nested
-  installs — `.pnpm-prod` symlinking back to the repo root was the case that motivated this.
+  installs — a `.pnpm-prod` directory linking back to the repo root is one such shape.
 - **`package.json` is parsed as JSONC**, so comments and trailing commas are tolerated.
 - **An unparseable `package.json` is skipped with a `console.warn`**, not thrown. One broken
   manifest does not abort discovery of the rest.
@@ -74,8 +74,9 @@ interface Project {
 }
 ```
 
-`ProjectInfo` is an alias for `Project`, kept for backward compatibility. `PackageJson` is a loose
-interface with the common fields typed and an index signature for everything else.
+`ProjectInfo` is an alias for `Project` — both names appear in the codebase and either is fine.
+`PackageJson` is a loose interface with the common fields typed and an index signature for
+everything else.
 
 ## `buildDependencyGraph(projects, workspaceProjects?)`
 
