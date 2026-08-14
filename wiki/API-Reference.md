@@ -37,7 +37,7 @@ changeCase.pascalCase('my-service'); // 'MyService'
 
 ## `./project` → [Project Discovery](Project-Discovery)
 
-| Export                    | Kind     | Signature / shape                                                                                                     |
+| Export                    | Kind     | Signature / type                                                                                                      |
 | ------------------------- | -------- | --------------------------------------------------------------------------------------------------------------------- |
 | `discoverProjects`        | function | `(options?: ProjectDiscoveryOptions) => Promise<Project[]>`                                                           |
 | `buildDependencyGraph`    | function | `(projects: ProjectInfo[], workspaceProjects?: Set<string>) => DependencyGraph`                                       |
@@ -52,7 +52,7 @@ changeCase.pascalCase('my-service'); // 'MyService'
 
 ## `./runner` → [Parallel Script Runner](Parallel-Script-Runner)
 
-| Export       | Kind     | Signature / shape                                                                                                                     |
+| Export       | Kind     | Signature / type                                                                                                                      |
 | ------------ | -------- | ------------------------------------------------------------------------------------------------------------------------------------- |
 | `runScripts` | function | `(options: RunOptions) => Promise<RunSummary>`                                                                                        |
 | `RunOptions` | type     | `scripts`, `concurrency?`, `failFast?`, `cwd?`, `env?`, `missingScript?`, `maxOutputBytes?`, `onOutput?`, `beforeTask?`, `afterTask?` |
@@ -67,7 +67,7 @@ Defaults: `concurrency: Infinity`, `failFast: false`, `cwd: process.cwd()`,
 
 ## `./dep-versions` → [Dependency Versions](Dependency-Versions)
 
-| Export              | Kind     | Signature / shape                                                                      |
+| Export              | Kind     | Signature / type                                                                       |
 | ------------------- | -------- | -------------------------------------------------------------------------------------- |
 | `checkDepVersions`  | function | `(filePath: string, cwd?: string, registry?: HandlerRegistry) => Promise<DepChange[]>` |
 | `fixDepVersions`    | function | Same signature; writes.                                                                |

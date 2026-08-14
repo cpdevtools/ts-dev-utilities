@@ -16,8 +16,9 @@ The same engine backs [`devutil run`](devutil-CLI) and git-flow's `test` action.
 
 ## The scheduling model
 
-A project starts the moment **all of its workspace dependencies have passed** — not when its
-topological tier completes. There are no waves and no barriers.
+A project starts as soon as **all of its own workspace dependencies have passed**. It does not wait
+for unrelated projects to finish first, so a slow project only delays the projects that depend on
+it.
 
 ```
 discover projects (pnpm workspace members)
@@ -34,8 +35,8 @@ loop:
 until nothing is running and nothing is ready
 ```
 
-Wall-clock is therefore bounded by the longest dependency _chain_, not by the sum of the slowest
-project per tier.
+Total run time is therefore determined by the longest chain of dependencies, not by the total number
+of projects.
 
 Scripts within a single project run **sequentially** in the order given. `['build', 'test']` means
 build-then-test per project; a non-zero exit from the first stops that project and its remaining
@@ -78,7 +79,7 @@ interface RunOptions {
 | -------------------------- | --------------- | ----------------------------------------------------------------------------------------- |
 | `scripts`                  | _(required)_    | Script names to look for in each project's `package.json`.                                |
 | `concurrency`              | `Infinity`      | Maximum tasks in flight.                                                                  |
-| `failFast`                 | `false`         | Keep-going is the default, so one failure still yields full coverage elsewhere.           |
+| `failFast`                 | `false`         | By default the run continues after a failure, so unrelated projects still complete.       |
 | `cwd`                      | `process.cwd()` | Workspace root to discover from.                                                          |
 | `env`                      | `{}`            | Extra env for every spawned process. Cannot vary per project — use `beforeTask` for that. |
 | `missingScript`            | `'skip'`        | `'skip'` → `no-script` (a pass). `'error'` → `failed`, which skips dependents.            |
@@ -143,8 +144,8 @@ environment.
 
 ## Hooks
 
-Hooks make the runner useful as a build/pack engine rather than just a test runner — git-flow uses
-`beforeTask` to inject per-project version and output-path variables.
+Hooks allow the runner to be used for build and pack work as well as testing. git-flow uses
+`beforeTask` to supply per-project version and output-path variables.
 
 ### `beforeTask(project)`
 
@@ -194,14 +195,15 @@ Two independent mechanisms:
 
 ## Failure behaviour
 
-**Keep-going (default).** A failure marks the project `failed` and all of its transitive dependents
-`skipped`. Unrelated branches of the graph keep running to completion, so one run surfaces as many
-independent failures as possible.
+**By default the run continues.** A failure marks that project `failed` and all of its dependents,
+direct and indirect, `skipped`. Projects that do not depend on it continue to completion, so a
+single run reports as many independent failures as possible.
 
-**Fail-fast (`failFast: true`).** In addition, a shared `AbortController` is aborted: in-flight
-tasks are killed and become `cancelled`, and everything not yet started becomes `skipped`.
+**With `failFast: true` the run stops.** In addition to the above, a shared `AbortController` is
+aborted: tasks already running are terminated and marked `cancelled`, and any task that has not
+started is marked `skipped`.
 
-## Worked example
+## Example
 
 ```ts
 import { runScripts } from '@cpdevtools/ts-dev-utilities/runner';

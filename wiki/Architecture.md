@@ -1,6 +1,6 @@
 # Architecture
 
-## Shape of the repo
+## Repository layout
 
 A two-package pnpm workspace. `packages/*` is the only member glob, so the workspace root itself is
 not a project.
@@ -20,7 +20,7 @@ ts-dev-utilities/
 └── .publish/                    # versions.yml · registries.yml · deps.yml
 ```
 
-## How the modules layer
+## How the modules fit together
 
 ```mermaid
 flowchart TD
@@ -44,32 +44,33 @@ flowchart TD
     end
 ```
 
-`artifacts` and `json` are leaves — nothing else in the library depends on them, they exist for
-consumers. `runner` is the only module that spawns processes.
+Nothing else in the library depends on `artifacts` or `json`; both exist for consumers. `runner` is
+the only module that starts processes.
 
 ## Design principles
 
-These are the constraints the code is actually written to, and they explain most of the shape:
+These are the constraints the code is written to, and they account for most of its structure:
 
-**Generic engine, no pipeline coupling.** The scheduler knows about projects, scripts and a
-dependency graph. It knows nothing about releases, artifacts, tags, or GitHub. Anything
+**The engine is not coupled to the release pipeline.** The scheduler works with projects, scripts
+and a dependency graph. It has no knowledge of releases, artifacts, tags or GitHub. Anything
 GitHub-specific — annotations, step summaries, mode presets — belongs in git-flow's `test` action,
 which is a thin adapter over `runScripts`.
 
-**No pass tracking, no change detection.** Every run executes the targeted scripts across the whole
-graph. Nothing is persisted between runs, so there is no cache to go stale and no shared state for
-concurrent runs to race over.
+**No pass tracking and no change detection.** Every run executes the targeted scripts across the
+whole graph. Nothing is stored between runs, so there is no cache to go stale and no shared state
+for concurrent runs to conflict over.
 
-**Ready-set, not waves.** A project starts the moment all of its workspace dependencies have
-passed — not when its whole topological tier finishes. `getTopologicalBatches()` serves batch-style
-consumers; the scheduler does not use it.
+**Each project starts independently.** A project runs as soon as its own workspace dependencies
+have passed, rather than waiting for every project at the same depth in the graph.
+`getTopologicalBatches()` is available for consumers that do want fixed batches; the scheduler does
+not use it.
 
-**Minimal dependencies.** Process execution is plain `node:child_process`; concurrency is a
-hand-rolled ready-set loop rather than `p-limit`. The CLI uses a ~20-line argument parser rather
-than oclif, deliberately, so that installing the CLI stays cheap.
+**Few dependencies.** Process execution uses `node:child_process` directly, and concurrency is
+handled by the scheduler's own loop rather than a library such as `p-limit`. The CLI uses a small
+argument parser rather than a framework such as oclif, to keep the install light.
 
-**Library first, CLI second.** Every CLI command is a thin wrapper over an exported function. If
-`devutil` can do it, so can your code.
+**The library comes first and the CLI second.** Every CLI command is a thin wrapper over an
+exported function, so anything `devutil` can do is also available from code.
 
 ## Relationship to git-flow
 
@@ -80,10 +81,10 @@ The two repos depend on each other:
 - `ts-dev-utilities` consumes `@cpdevtools/git-flow` and `@cpdevtools/git-flow-cli` as
   devDependencies to release itself.
 
-They therefore **move in lockstep**, which is why `@cpdevtools/ts-dev-utilities` sits in git-flow's
-`pnpm-workspace.yaml` `minimumReleaseAgeExclude` — a release has to be consumable the day it
-publishes rather than after a cooling-off period. This repo excludes the same three packages for
-the same reason:
+They are therefore released together, which is why `@cpdevtools/ts-dev-utilities` is listed in
+git-flow's `pnpm-workspace.yaml` under `minimumReleaseAgeExclude` — a release has to be usable on
+the day it publishes rather than after a waiting period. This repository excludes the same three
+packages for the same reason:
 
 ```yaml
 minimumReleaseAgeExclude:

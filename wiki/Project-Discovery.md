@@ -39,7 +39,7 @@ packages:
   - '!packages/junk'  →  added to ignore
 ```
 
-This has two consequences worth internalising:
+This has two consequences worth noting:
 
 - **Discovery is scoped to actual workspace members.** A stray `package.json` in a fixture
   directory outside the member globs is not a project.
@@ -54,14 +54,14 @@ a recursive `**/package.json` search.
 ### Behaviour details
 
 - **Symlinked directories are never traversed** (`followSymbolicLinks: false`). Real workspace
-  members are real directories, and following symlinks can recurse infinitely through nested
-  installs — a `.pnpm-prod` directory linking back to the repo root is one such shape.
+  members are real directories, and following symlinks can recurse indefinitely through nested
+  installs — for example, a `.pnpm-prod` directory that links back to the repository root.
 - **`package.json` is parsed as JSONC**, so comments and trailing commas are tolerated.
 - **An unparseable `package.json` is skipped with a `console.warn`**, not thrown. One broken
   manifest does not abort discovery of the rest.
 - A project with no `name` field falls back to its directory name.
 
-### The `Project` shape
+### The `Project` type
 
 ```ts
 interface Project {
@@ -116,14 +116,15 @@ interface DependencyNode {
 Both directions are tracked, which is what lets the scheduler unblock dependents and propagate
 skips without re-walking the graph.
 
-### Batches vs the ready-set
+### Batches compared with the runner
 
-`getTopologicalBatches()` returns fixed waves: batch _n+1_ does not begin until all of batch _n_ is
-done. That is the right model for batch-style processing (git-flow's build-pack uses this shape),
-but it wastes wall-clock when one project in a wave is much slower than the rest.
+`getTopologicalBatches()` returns fixed batches: batch _n+1_ does not begin until every project in
+batch _n_ has finished. That suits work that has to be processed a batch at a time, such as
+git-flow's build-pack, but it leaves projects idle whenever one project in a batch takes much longer
+than the others.
 
-The [runner](Parallel-Script-Runner) deliberately does **not** use it. It walks `dependencies` /
-`dependents` directly so each project starts as soon as its own dependencies pass.
+The [runner](Parallel-Script-Runner) does not use it. It reads `dependencies` and `dependents`
+directly, so each project starts as soon as its own dependencies pass.
 
 ## Example
 
@@ -141,7 +142,7 @@ for (const node of graph.getAllNodes()) {
 }
 
 for (const [i, batch] of graph.getTopologicalBatches().entries()) {
-  console.log(`wave ${i}: ${batch.map((p) => p.name).join(', ')}`);
+  console.log(`batch ${i}: ${batch.map((p) => p.name).join(', ')}`);
 }
 ```
 

@@ -27,7 +27,7 @@ pre-release, advance within the channel, change channel, or start the next patch
 `-dev.0`. It will never offer a version whose tag already exists. It writes `.publish/versions.yml`
 and commits.
 
-Then just push:
+Then push:
 
 ```bash
 git push
@@ -42,10 +42,9 @@ git push
 | `build-pack-publish.yml` | a PR **merged** into `release/**`      | `build-pack` then `publish-release`                                                                                    |
 | `cleanup-scheduled.yml`  | daily at 02:00 UTC, or manual          | Prunes superseded prerelease builds (`dry_run` defaults to `true` on manual runs)                                      |
 
-**Merging the draft release PR is what publishes.** Up to that point every push just keeps the PR
-current. After the merge, `build-pack` builds and packs from the PR's metadata and uploads to the
-draft Release; `publish-release` pushes to the registries, creates the tags, and finalises the
-Release.
+**Merging the draft release PR is what publishes.** Until then, each push only updates that PR.
+After the merge, `build-pack` builds and packs from the PR's metadata and uploads to the draft
+Release; `publish-release` pushes to the registries, creates the tags, and finalises the Release.
 
 ## Registries
 
@@ -95,4 +94,4 @@ on a release that was explicitly meant to be allowed.
 - `pnpm test` and `pnpm typecheck` pass locally, and `test.yml` is green on the branch.
 - If a subpath export was added, `package.json` `exports` and `tsup.config.ts` both list it —
   see [Development](Development).
-- If a published type changed shape, [API Reference](API-Reference) matches reality.
+- If a published type changed, [API Reference](API-Reference) matches reality.

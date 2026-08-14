@@ -91,7 +91,7 @@ any nested `pnpm run` in CI checks `node_modules` against the **root** lockfile 
 If the hook fails, the commit is aborted with pnpm's output; fix the dependency problem rather than
 bypassing it.
 
-## Dependency hygiene
+## Dependency consistency
 
 Two tools, different jobs:
 

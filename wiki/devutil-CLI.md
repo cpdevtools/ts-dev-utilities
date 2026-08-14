@@ -50,12 +50,12 @@ devutil run github.actions.test --fail-fast --concurrency 4
 
 ### Output styles
 
-| Style     | Behaviour                                                                                                                                                       |
-| --------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `stream`  | Live output as it happens, every line prefixed with `[project]`. Default outside CI.                                                                            |
-| `full`    | Nothing during the run; afterwards every task's output, grouped under a per-project header, failures last so they sit closest to the summary. Default under CI. |
-| `summary` | Captured output for **failed** tasks only.                                                                                                                      |
-| `silent`  | Only the final pass/fail counts.                                                                                                                                |
+| Style     | Behaviour                                                                                                                                                               |
+| --------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `stream`  | Live output as it happens, every line prefixed with `[project]`. Default outside CI.                                                                                    |
+| `full`    | Nothing during the run; afterwards every task's output, grouped under a per-project header, failures last, so they appear directly above the summary. Default under CI. |
+| `summary` | Captured output for **failed** tasks only.                                                                                                                              |
+| `silent`  | Only the final pass/fail counts.                                                                                                                                        |
 
 CI is detected as `GITHUB_ACTIONS=true`, or `CI` set to anything other than empty, `false` or `0`.
 Grouped (`full`) output is the CI default because interleaved parallel logs are hard to read in a
@@ -134,7 +134,7 @@ The deps file format and the per-ecosystem rules are documented in
 
 ---
 
-## Wiring it into a workspace
+## Adding it to a workspace
 
 The typical root `package.json`, using wireit:
 

@@ -1,14 +1,14 @@
 # Gotchas
 
-Behaviours that are correct by design but surprising in practice — the ones most likely to cost you
-an afternoon.
+Behaviour that is correct by design but easy to misread. Each entry describes what happens, and what
+goes wrong if you assume otherwise.
 
-## A green test run that tested nothing
+## A passing test run that ran no tests
 
 `missingScript` defaults to `'skip'`, so a project defining **none** of the target scripts is
 reported `no-script`, counted as a pass, and unblocks its dependents. Combined with git-flow's
 `test` action — where `mode` selects _script names_, not behaviours — a repo whose tests live under
-a plain `test` script sails through CI without ever running them.
+a plain `test` script will pass CI without ever running them.
 
 `mode: test-optional` runs `github.actions.build` and `github.actions.test`. **Name the script
 `github.actions.test`.** If you would rather fail loudly, run with `--missing-script error`, which

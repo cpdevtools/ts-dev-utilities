@@ -86,7 +86,7 @@ if (summary.failed.length > 0) process.exit(1);
 ```
 
 A project that defines _neither_ script is reported as `no-script` and counted as a pass — that is
-the default and it is easy to be caught out by. See [Gotchas](Gotchas).
+the default behaviour, and a common source of confusion. See [Gotchas](Gotchas).
 
 ## Where to go next
 

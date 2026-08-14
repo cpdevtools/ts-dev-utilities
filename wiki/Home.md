@@ -1,12 +1,12 @@
 # ts-dev-utilities
 
-Generic workspace tooling for pnpm/TypeScript monorepos: project discovery, a real dependency
-graph, a dependency-driven parallel script runner, JSONC helpers, artifact descriptors, and a
-cross-ecosystem dependency-version pinner — plus the `devutil` CLI that exposes them.
+Workspace tooling for pnpm/TypeScript monorepos: project discovery, a dependency graph, a parallel
+script runner ordered by that graph, JSONC helpers, artifact descriptors, and dependency-version
+pinning across several ecosystems — together with the `devutil` CLI that exposes them.
 
-Everything here is **deliberately generic**. Nothing in this repo knows about releases, GitHub
-Actions, or git. That coupling lives one layer up, in
-[`git-flow`](https://github.com/cpdevtools/git-flow), which consumes these primitives.
+These are general-purpose utilities. Nothing in this repository depends on releases, GitHub Actions
+or git; that belongs to [`git-flow`](https://github.com/cpdevtools/git-flow), which is built on top
+of them.
 
 ## Packages
 
@@ -48,7 +48,7 @@ an `.npmrc` — see [Getting Started](Getting-Started).
 
 - [Development](Development) — build, test, `DEV_LOCAL`, the wireit task graph.
 - [Releasing](Releasing) — the `0.0.0-MAIN` placeholder, release PRs, registries.
-- [Gotchas](Gotchas) — the traps that have actually bitten people.
+- [Gotchas](Gotchas) — behaviour that is correct by design but easy to misread.
 
 ## Relationship to git-flow
 

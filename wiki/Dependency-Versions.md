@@ -54,10 +54,10 @@ or prefix matching.
 `node_modules`, `dist`, `.pnpm-prod` (and `bin`/`obj` for .NET) are ignored, and no handler follows
 symlinks.
 
-## Rules that keep it safe
+## Values that are never rewritten
 
-The handlers deliberately refuse to touch things that look like versions but are not pins. Each of
-these exists because overwriting them causes a real defect:
+The handlers leave alone anything that resembles a version but is not a pinned one. Each rule
+prevents a specific failure:
 
 **npm — specifiers carrying a protocol are never rewritten.** `workspace:`, `link:`, `file:`,
 `portal:`, `catalog:`, `npm:` aliases, git and tarball URLs all say _where_ a dependency comes from,
@@ -80,7 +80,7 @@ using the lowercase spelling is invisible to the handler entirely.
 ## npm versions inside Dockerfiles
 
 The same package pinned in `package.json` is often also pinned in an image build. Those belong to
-the `npm` handler (the `docker` handler is only concerned with image tags), and two shapes are
+the `npm` handler (the `docker` handler is only concerned with image tags), and two forms are
 recognised.
 
 **Annotated build args.** Nothing in `ARG NAME=value` names the package, and guessing from the arg
@@ -151,7 +151,7 @@ await checkDepVersions('deps.yml', process.cwd(), registry);
 reporting without writing, `fix` writing and reporting. Registration is by `handler.name`, so
 re-registering the same name replaces the previous handler.
 
-## Wiring it in
+## Adding it to a workspace
 
 The convention in these repos is a `.publish/deps.yml` at the root, with a wireit task on each
 side:
@@ -165,8 +165,9 @@ side:
 }
 ```
 
-`check.deps` hangs off the repo's `check` task (so CI fails on drift) and `fix.deps` runs before
-syncpack in `fix`, so `pnpm fix` pins first and reconciles ranges after.
+`check.deps` is a dependency of the repository's `check` task, so CI fails when versions drift.
+`fix.deps` runs before syncpack in `fix`, so `pnpm fix` applies the pinned versions first and
+reconciles ranges afterwards.
 
 Source:
 [`src/dep-versions/`](https://github.com/cpdevtools/ts-dev-utilities/tree/main/packages/ts-dev-utilities/src/dep-versions)
