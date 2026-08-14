@@ -1,6 +1,6 @@
 npm:
-  '@cpdevtools/git-flow': '0.4.20-rc.13'
-  '@cpdevtools/git-flow-cli': '0.4.20-rc.13'
+  '@cpdevtools/git-flow': '0.4.20-rc.15'
+  '@cpdevtools/git-flow-cli': '0.4.20-rc.15'
   '@types/node': '^20.17.10'
   '@typescript-eslint/eslint-plugin': '^8.20.0'
   '@typescript-eslint/parser': '^8.20.0'
