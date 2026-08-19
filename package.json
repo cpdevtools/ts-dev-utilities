@@ -2,7 +2,7 @@
   "name": "@cpdevtools/ts-dev-utilities-workspace",
   "version": "0.0.0-MAIN",
   "private": true,
-  "description": "TypeScript development utilities — workspace root",
+  "description": "TypeScript development utilities \u2014 workspace root",
   "scripts": {
     "build": "devutil run build",
     "check": "wireit",
@@ -17,8 +17,8 @@
     "typecheck": "devutil run typecheck"
   },
   "devDependencies": {
-    "@cpdevtools/git-flow": "1.0.0-rc.1",
-    "@cpdevtools/git-flow-cli": "1.0.0-rc.1",
+    "@cpdevtools/git-flow": "^1.0.1",
+    "@cpdevtools/git-flow-cli": "^1.0.1",
     "@cpdevtools/ts-dev-utilities-cli": "workspace:*",
     "@types/node": "^20.17.10",
     "@typescript-eslint/eslint-plugin": "^8.20.0",
@@ -102,8 +102,7 @@
     },
     "clean": {
       "dependencies": [
-        "clean.git",
-        "pnpm.install"
+        "clean.bootstrap"
       ]
     },
     "clean.git": {
@@ -122,6 +121,20 @@
     },
     "pnpm.install": {
       "command": "pnpm install",
+      "cache": false
+    },
+    "clean.install": {
+      "command": "pnpm install",
+      "dependencies": [
+        "clean.git"
+      ],
+      "cache": false
+    },
+    "clean.bootstrap": {
+      "command": "pnpm --filter @cpdevtools/ts-dev-utilities run build && pnpm --filter @cpdevtools/ts-dev-utilities-cli run build && rm -f node_modules/.pnpm-workspace-state*.json && pnpm install --force",
+      "dependencies": [
+        "clean.install"
+      ],
       "cache": false
     }
   }
