@@ -17,8 +17,8 @@
     "typecheck": "devutil run typecheck"
   },
   "devDependencies": {
-    "@cpdevtools/git-flow": "^1.0.1",
-    "@cpdevtools/git-flow-cli": "^1.0.1",
+    "@cpdevtools/git-flow": "^1.0.2",
+    "@cpdevtools/git-flow-cli": "^1.0.2",
     "@cpdevtools/ts-dev-utilities-cli": "workspace:*",
     "@types/node": "^20.17.10",
     "@typescript-eslint/eslint-plugin": "^8.20.0",
