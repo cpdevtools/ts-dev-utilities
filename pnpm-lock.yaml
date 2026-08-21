@@ -11,11 +11,11 @@ importers:
   .:
     devDependencies:
       '@cpdevtools/git-flow':
-        specifier: ^1.0.2
-        version: 1.0.2(chokidar@3.6.0)
+        specifier: ^1.0.3
+        version: 1.0.3(chokidar@3.6.0)
       '@cpdevtools/git-flow-cli':
-        specifier: ^1.0.2
-        version: 1.0.2(chokidar@3.6.0)
+        specifier: ^1.0.3
+        version: 1.0.3(chokidar@3.6.0)
       '@cpdevtools/ts-dev-utilities-cli':
         specifier: workspace:*
         version: link:packages/cli
@@ -128,13 +128,13 @@ packages:
     resolution: {integrity: sha512-qehxGkRj55h/ff8EMaJ+cYhyaKlHIxqYDn682wQD7RNp9UujOQsHog2uS0r2vzr4pW+sXf90NeeayjcNaX3fFg==}
     engines: {node: '>=6.9.0'}
 
-  '@cpdevtools/git-flow-cli@1.0.2':
-    resolution: {integrity: sha512-MTdCNTT8TevrEVobvaY309x/0esR8NJ6dcxr3/hSophftdrQSf1TJtB82APfWxjEODFfbt8aNXuDyOAqDCDDiQ==, tarball: https://npm.pkg.github.com/download/@cpdevtools/git-flow-cli/1.0.2/b071fb1aaba1c667475a2a401187d4e7401db4c4}
+  '@cpdevtools/git-flow-cli@1.0.3':
+    resolution: {integrity: sha512-ijMMaHwruasTVREuLLJs+J9WmWCycmvP2aGFI3PQniOSAd/FA7sf8wtPPICl+mhIrkHVw1ocIvNIsz7taSYmEA==, tarball: https://npm.pkg.github.com/download/@cpdevtools/git-flow-cli/1.0.3/55e729a85de45d23b29432092159e0bfcedd30ba}
     engines: {node: '>=24'}
     hasBin: true
 
-  '@cpdevtools/git-flow@1.0.2':
-    resolution: {integrity: sha512-JxV8K1m0cT9VbHEaTnCk+SooQpHNXgkokcFFspidDnp/9ZqS9lv0V4ZXIsDhT+PDxvZ+Wt2UzKqy7/Z/EUuRkw==, tarball: https://npm.pkg.github.com/download/@cpdevtools/git-flow/1.0.2/af060dde680dad87d8b8bb203da6c4c3b37b40bc}
+  '@cpdevtools/git-flow@1.0.3':
+    resolution: {integrity: sha512-K9fsx8Nowf1/8p9feVpyw9egPoubvm/G9Q3WucCTDZgSJngxU74YYEVwRf5U/Vs75Ntp+RMop08TMiPSxQ3Uew==, tarball: https://npm.pkg.github.com/download/@cpdevtools/git-flow/1.0.3/68405da8a3051ad807a82889eed3923da3403146}
     engines: {node: '>=24'}
 
   '@cpdevtools/ts-dev-utilities@1.0.1':
@@ -1095,6 +1095,7 @@ packages:
   eslint@9.39.2:
     resolution: {integrity: sha512-LEyamqS7W5HB3ujJyvi0HQK/dtVINZvd5mAAp9eT5S/ujByGjiZLCzPcHVzuXbpJDJF/cxwHlfceVUDZ2lnSTw==}
     engines: {node: ^18.18.0 || ^20.9.0 || >=21.1.0}
+    deprecated: This version is no longer supported. Please see https://eslint.org/version-support for other options.
     hasBin: true
     peerDependencies:
       jiti: '*'
@@ -1983,9 +1984,9 @@ snapshots:
 
   '@babel/helper-validator-identifier@7.29.7': {}
 
-  '@cpdevtools/git-flow-cli@1.0.2(chokidar@3.6.0)':
+  '@cpdevtools/git-flow-cli@1.0.3(chokidar@3.6.0)':
     dependencies:
-      '@cpdevtools/git-flow': 1.0.2(chokidar@3.6.0)
+      '@cpdevtools/git-flow': 1.0.3(chokidar@3.6.0)
       '@oclif/core': 4.13.5
       '@oclif/plugin-autocomplete': 3.2.56
       '@oclif/plugin-help': 6.2.58
@@ -1997,7 +1998,7 @@ snapshots:
       - chokidar
       - supports-color
 
-  '@cpdevtools/git-flow@1.0.2(chokidar@3.6.0)':
+  '@cpdevtools/git-flow@1.0.3(chokidar@3.6.0)':
     dependencies:
       '@actions/core': 1.11.1
       '@actions/github': 6.0.1
@@ -3155,7 +3156,7 @@ snapshots:
     dependencies:
       hosted-git-info: 8.1.0
       proc-log: 5.0.0
-      semver: 7.7.3
+      semver: 7.8.5
       validate-npm-package-name: 6.0.2
 
   nunjucks@3.2.4(chokidar@3.6.0):
