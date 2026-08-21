@@ -2,7 +2,7 @@
   "name": "@cpdevtools/ts-dev-utilities-workspace",
   "version": "0.0.0-MAIN",
   "private": true,
-  "description": "TypeScript development utilities \u2014 workspace root",
+  "description": "TypeScript development utilities — workspace root",
   "scripts": {
     "build": "devutil run build",
     "check": "wireit",
@@ -17,8 +17,8 @@
     "typecheck": "devutil run typecheck"
   },
   "devDependencies": {
-    "@cpdevtools/git-flow": "^1.0.1",
-    "@cpdevtools/git-flow-cli": "^1.0.1",
+    "@cpdevtools/git-flow": "^1.0.3",
+    "@cpdevtools/git-flow-cli": "^1.0.3",
     "@cpdevtools/ts-dev-utilities-cli": "workspace:*",
     "@types/node": "^20.17.10",
     "@typescript-eslint/eslint-plugin": "^8.20.0",
