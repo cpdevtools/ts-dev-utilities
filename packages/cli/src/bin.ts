@@ -9,7 +9,7 @@ import {
   loadDevLinkConfig,
   unlinkPackages,
 } from '@cpdevtools/ts-dev-utilities/dev-link';
-import type { RunSummary } from '@cpdevtools/ts-dev-utilities/runner';
+import type { RunSummary, TaskResult } from '@cpdevtools/ts-dev-utilities/runner';
 import type { DepChange } from '@cpdevtools/ts-dev-utilities/dep-versions';
 import type { DevLinkStatusEntry } from '@cpdevtools/ts-dev-utilities/dev-link';
 
@@ -54,7 +54,7 @@ async function cmdRun(args: string[]): Promise<void> {
 
   if (positional.length === 0) {
     console.error(
-      'Usage: devutil run <script...> [--output-style silent|summary|full|stream] [--fail-fast] [--concurrency <n>] [--cwd <path>] [--missing-script skip|error] [--max-output <bytes>]',
+      'Usage: devutil run <script...> [--output-style stream|task|summary|silent] [--fail-fast] [--concurrency <n>] [--cwd <path>] [--missing-script skip|error] [--max-output <bytes>]',
     );
     process.exitCode = 1;
     return;
@@ -64,6 +64,10 @@ async function cmdRun(args: string[]): Promise<void> {
   const maxOutputRaw = flags['max-output'];
   const outputStyle = parseOutputStyle(flags['output-style']);
   const streamWriter = outputStyle === 'stream' ? createStreamWriter() : undefined;
+  // 'task' prints each task's block the moment it finishes. afterTask is not
+  // called for tasks that never ran a script (missing-script=error), so track
+  // what was printed and catch up on unprinted failures after the run.
+  const printedTasks = new Set<string>();
 
   const summary = await runScripts({
     scripts: positional,
@@ -75,16 +79,25 @@ async function cmdRun(args: string[]): Promise<void> {
     onOutput: streamWriter
       ? (project, chunk) => streamWriter.write(project.name, chunk)
       : undefined,
+    afterTask:
+      outputStyle === 'task'
+        ? (_project, result) => {
+            if (printTaskBlock(result)) printedTasks.add(result.project);
+          }
+        : undefined,
   });
 
   streamWriter?.flush();
 
-  if (outputStyle === 'full') {
+  if (outputStyle === 'task') {
+    for (const task of summary.failed) {
+      if (!printedTasks.has(task.project)) printTaskBlock(task);
+    }
+  } else if (outputStyle === 'summary') {
     printGroupedOutput(summary);
   }
 
-  // 'summary' shows failures only; the other styles have already emitted (or suppress) output.
-  printSummary(summary, { showFailureOutput: outputStyle === 'summary' });
+  printSummary(summary);
 
   if (summary.failed.length > 0) {
     // Not process.exit(): when stdout is a pipe, console.log is async and
@@ -93,19 +106,20 @@ async function cmdRun(args: string[]): Promise<void> {
   }
 }
 
-type OutputStyle = 'silent' | 'summary' | 'full' | 'stream';
+type OutputStyle = 'stream' | 'task' | 'summary' | 'silent';
 
 /**
- * Resolves the --output-style flag. When omitted, defaults to 'full' under CI
- * (grouped, non-interleaved logs read better in CI) and 'stream' otherwise.
+ * Resolves the --output-style flag. When omitted, defaults to 'summary' under
+ * CI (grouped, non-interleaved logs with failures directly above the final
+ * counts read best in CI) and 'stream' otherwise.
  */
 function parseOutputStyle(value: string | boolean | undefined): OutputStyle {
-  if (value === undefined) return isCI() ? 'full' : 'stream';
+  if (value === undefined) return isCI() ? 'summary' : 'stream';
   const v = String(value).toLowerCase();
-  if (v === 'silent' || v === 'summary' || v === 'full' || v === 'stream') return v;
+  if (v === 'stream' || v === 'task' || v === 'summary' || v === 'silent') return v;
   // Thrown (not process.exit) so the top-level catch reports it and stdio drains.
   throw new Error(
-    `Invalid --output-style value: ${value}. Expected one of: silent, summary, full, stream`,
+    `Invalid --output-style value: ${value}. Expected one of: stream, task, summary, silent`,
   );
 }
 
@@ -116,23 +130,32 @@ function isCI(): boolean {
   return ci !== undefined && ci !== '' && ci !== 'false' && ci !== '0';
 }
 
+const TASK_MARKS: Record<string, string> = { passed: '✅', cancelled: '🚫', failed: '❌' };
+
 /**
- * Prints each task's full captured output grouped under a per-project header,
- * after all tasks complete. Failures last so they sit closest to the summary.
+ * Prints one task's full captured output under a per-project header. Returns
+ * false when there was nothing to show (no output, and not a failure — a
+ * failure must always surface, even when it died before producing output:
+ * spawn failure, missing node_modules, OOM kill).
+ */
+function printTaskBlock(task: TaskResult): boolean {
+  if (!task.output && task.state !== 'failed') return false;
+  const mark = TASK_MARKS[task.state] ?? '•';
+  console.log(`\n${'─'.repeat(60)}\n${mark}  ${task.project}\n${'─'.repeat(60)}`);
+  if (task.truncated && task.output) {
+    console.log(`[Output truncated — showing last ${task.output.length} bytes]\n`);
+  }
+  console.log(task.output ? task.output.trimEnd() : '(no output captured)');
+  return true;
+}
+
+/**
+ * Prints every task's output grouped under a per-project header, after all
+ * tasks complete. Failures last so they sit closest to the summary.
  */
 function printGroupedOutput(summary: RunSummary): void {
-  const marks: Record<string, string> = { passed: '✅', cancelled: '🚫', failed: '❌' };
-
   for (const task of [...summary.passed, ...summary.cancelled, ...summary.failed]) {
-    // A failure must always surface, even when it died before producing output
-    // (spawn failure, missing node_modules, OOM kill).
-    if (!task.output && task.state !== 'failed') continue;
-    const mark = marks[task.state] ?? '•';
-    console.log(`\n${'─'.repeat(60)}\n${mark}  ${task.project}\n${'─'.repeat(60)}`);
-    if (task.truncated && task.output) {
-      console.log(`[Output truncated — showing last ${task.output.length} bytes]\n`);
-    }
-    console.log(task.output ? task.output.trimEnd() : '(no output captured)');
+    printTaskBlock(task);
   }
 }
 
@@ -348,11 +371,11 @@ Commands:
   dev-link auto                 postinstall hook: link everything mapped, only when DEV_LOCAL=true and not CI; always exits 0
 
 Options (run):
-  --output-style <style>   How task output is shown (default: stream, or full under CI):
-    silent                   Only the final summary (counts, plus failed project names)
-    summary                  Captured output for failed tasks only
-    full                     Every task's output, grouped by project, at the end
+  --output-style <style>   How task output is shown (default: stream, or summary under CI):
     stream                   Live output as it happens, prefixed with [project]
+    task                     Each task's output, grouped by project, as soon as that task finishes
+    summary                  Nothing during the run; every task's output at the end, failures last
+    silent                   Only the final counts (plus failed project names)
   --fail-fast              Stop on first failure, cancel in-flight tasks
   --concurrency <n>        Maximum tasks to run in parallel (default: unlimited)
   --cwd <path>             Workspace root (default: current directory)
@@ -371,7 +394,7 @@ Options (dev-link):
 
 Examples:
   devutil run github.actions.test
-  devutil run build --output-style full
+  devutil run build --output-style task
   devutil run github.actions.build github.actions.test --fail-fast
   devutil run github.actions.test --concurrency 4
   devutil discover
@@ -384,24 +407,7 @@ Examples:
 // Summary output
 // ----------------------------------------------------------------
 
-function printSummary(summary: RunSummary, options: { showFailureOutput?: boolean } = {}): void {
-  const { showFailureOutput = true } = options;
-
-  if (showFailureOutput) {
-    for (const task of summary.failed) {
-      const header = `\n${'─'.repeat(60)}\n❌  FAILED: ${task.project}\n${'─'.repeat(60)}`;
-      console.error(header);
-      if (task.output) {
-        if (task.truncated) {
-          console.error(`[Output truncated — showing last ${task.output.length} bytes]\n`);
-        }
-        console.error(task.output.trimEnd());
-      } else {
-        console.error('(no output captured)');
-      }
-    }
-  }
-
+function printSummary(summary: RunSummary): void {
   const lines = [
     `✅  Passed:    ${summary.passed.length}`,
     `❌  Failed:    ${summary.failed.length}`,
@@ -420,6 +426,16 @@ function printSummary(summary: RunSummary, options: { showFailureOutput?: boolea
 // ----------------------------------------------------------------
 // Entry point
 // ----------------------------------------------------------------
+
+// When output is piped to a consumer that exits early (e.g. `devutil run … | head`),
+// further writes raise EPIPE. Exit quietly like other Unix tools instead of
+// crashing with an unhandled 'error' event.
+for (const stream of [process.stdout, process.stderr]) {
+  stream.on('error', (err: NodeJS.ErrnoException) => {
+    if (err.code === 'EPIPE') process.exit(0);
+    throw err;
+  });
+}
 
 const [, , command, ...rest] = process.argv;
 

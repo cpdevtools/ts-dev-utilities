@@ -33,7 +33,7 @@ in the order given, while projects themselves run in parallel subject to the dep
 ```bash
 devutil run github.actions.test
 devutil run github.actions.build github.actions.test
-devutil run build --output-style full
+devutil run build --output-style task
 devutil run github.actions.test --fail-fast --concurrency 4
 ```
 
@@ -41,7 +41,7 @@ devutil run github.actions.test --fail-fast --concurrency 4
 
 | Flag                             | Default                      | Description                                                                   |
 | -------------------------------- | ---------------------------- | ----------------------------------------------------------------------------- |
-| `--output-style <style>`         | `stream`, or `full` under CI | How task output is shown — see below.                                         |
+| `--output-style <style>`         | `stream`, or `summary` under CI | How task output is shown — see below.                                      |
 | `--fail-fast`                    | off                          | Stop on first failure, cancelling in-flight tasks.                            |
 | `--concurrency <n>`              | unlimited                    | Maximum projects running at once.                                             |
 | `--cwd <path>`                   | current directory            | Workspace root.                                                               |
@@ -53,13 +53,13 @@ devutil run github.actions.test --fail-fast --concurrency 4
 | Style     | Behaviour                                                                                                                                                               |
 | --------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `stream`  | Live output as it happens, every line prefixed with `[project]`. Default outside CI.                                                                                    |
-| `full`    | Nothing during the run; afterwards every task's output, grouped under a per-project header, failures last, so they appear directly above the summary. Default under CI. |
-| `summary` | Captured output for **failed** tasks only.                                                                                                                              |
-| `silent`  | Only the final pass/fail counts.                                                                                                                                        |
+| `task`    | Each task's output, grouped under a per-project header, printed as soon as that task finishes. Blocks appear in completion order and never interleave.                  |
+| `summary` | Nothing during the run; afterwards every task's output, grouped under a per-project header, failures last, so they appear directly above the summary. Default under CI. |
+| `silent`  | Only the final pass/fail counts (failed projects are still named).                                                                                                      |
 
 CI is detected as `GITHUB_ACTIONS=true`, or `CI` set to anything other than empty, `false` or `0`.
-Grouped (`full`) output is the CI default because interleaved parallel logs are hard to read in a
-GitHub Actions log view.
+Grouped (`summary`) output is the CI default because interleaved parallel logs are hard to read in
+a GitHub Actions log view, and failures land directly above the final counts.
 
 ### Summary and exit code
 
