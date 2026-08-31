@@ -76,6 +76,14 @@ repoints the installed `node_modules/@cpdevtools/<pkg>` symlinks at sibling chec
 stats symlink targets, and `.bin` shims follow the repoint — so the overlay is invisible to pnpm and
 survives everything short of a real install (which `postinstall: devutil dev-link auto` self-heals).
 
+In a pnpm workspace, a mapped package can be installed in **member projects' own `node_modules`**
+too, and that nested entry is the one Node resolves for the member's code — it shadows the root
+entry. dev-link therefore operates on every install root (the workspace root plus each member
+project), linking wherever the package is actually installed; `status` shows one row per location.
+Note that pnpm rewrites member `node_modules` even on an "Already up to date" install, so nested
+links are reset more often than root ones — the postinstall auto-relink heals both, provided the
+installed CLI is new enough to know about nested roots (≥ 1.1.4).
+
 In this repo the map is currently **empty** (no `.publish/dev-local.yml`): the two workspace
 packages already resolve each other via `workspace:*`. Consumer repos (git-flow, the webservice
 repos) carry a map and a `postinstall` hook; `DEV_LOCAL=true` (exported ambiently by the

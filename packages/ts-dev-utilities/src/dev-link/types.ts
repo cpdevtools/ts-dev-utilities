@@ -21,6 +21,12 @@ export type CheckoutState =
 
 export interface DevLinkStatusEntry {
   pkg: string;
+  /**
+   * Workspace-relative directory whose `node_modules` holds this entry, for a
+   * package installed in a member project's own node_modules. Omitted for the
+   * workspace root. One package can yield entries for several locations.
+   */
+  location?: string;
   /** Configured path, as written in the config (relative). */
   localPath: string;
   install: InstallState;
@@ -52,6 +58,8 @@ export type DevLinkAction =
 
 export interface DevLinkOpResult {
   pkg: string;
+  /** Workspace-relative install root of this entry; omitted for the root. */
+  location?: string;
   action: DevLinkAction;
   message: string;
 }
