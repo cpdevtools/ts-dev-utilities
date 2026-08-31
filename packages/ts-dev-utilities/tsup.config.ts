@@ -8,6 +8,7 @@ export default defineConfig({
     'artifacts/index': 'src/artifacts/index.ts',
     'runner/index': 'src/runner/index.ts',
     'dep-versions/index': 'src/dep-versions/index.ts',
+    'dev-link/index': 'src/dev-link/index.ts',
   },
   format: ['cjs'],
   dts: true,

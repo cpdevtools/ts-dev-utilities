@@ -66,30 +66,40 @@ ordering, failure propagation, fail-fast cancellation, concurrency caps, `missin
 output truncation, and both hooks without spawning real processes. Discovery is tested against real
 temp directories, including symlink and invalid-manifest cases.
 
-## `DEV_LOCAL`
+## `DEV_LOCAL` and dev-link
 
-`.pnpmfile.cjs` supports `DEV_LOCAL=true pnpm install` to resolve `@cpdevtools/*` dependencies from
-sibling checkouts via `file:` instead of the registry. In this repo the local-package map is
-currently **empty** — the hook is in place for when it is needed, and for symmetry with git-flow,
-where it is actively used to develop against a sibling `ts-dev-utilities`.
+Developing against local checkouts of `@cpdevtools/*` packages is done with **`devutil dev-link`**
+(implemented in this repo — `src/dev-link/`), not by changing pnpm's resolution. `pnpm install`
+always installs the published graph from the single committed root lockfile; `dev-link` then
+repoints the installed `node_modules/@cpdevtools/<pkg>` symlinks at sibling checkouts listed in
+`.publish/dev-local.yml`. The lockfile and manifests never change, pnpm's install fingerprint never
+stats symlink targets, and `.bin` shims follow the repoint — so the overlay is invisible to pnpm and
+survives everything short of a real install (which `postinstall: devutil dev-link auto` self-heals).
 
-Hooks are only exported when `DEV_LOCAL=true`, so a normal install can never produce a lockfile
-checksum mismatch in CI.
+In this repo the map is currently **empty** (no `.publish/dev-local.yml`): the two workspace
+packages already resolve each other via `workspace:*`. Consumer repos (git-flow, the webservice
+repos) carry a map and a `postinstall` hook; `DEV_LOCAL=true` (exported ambiently by the
+devcontainer) gates whether `auto` links, and `CI` always refuses.
+
+The overlay is **layered, not transitive**: a repo that links a local `git-flow` gets that
+checkout's own `node_modules` — including its published `ts-dev-utilities` — unless the git-flow
+checkout is itself dev-linked. Each repo controls only its own overlay. The one behavioural
+difference from the old pnpmfile approach: shared dependencies can exist twice (the consumer's
+instance and the checkout's), which matters only for singleton/`instanceof`-sensitive libraries —
+same behaviour and same fix (dep alignment) as classic `npm link`.
+
+Historical note: this replaced a `.pnpmfile.cjs` that rewrote `@cpdevtools/*` deps to `file:`
+paths under `DEV_LOCAL=true`. Because that mutated resolution — which pnpm 11 records and
+frozen-validates — it required a second committed lockfile (`.pnpm-prod/`), pre-commit lockfile
+surgery, and fingerprint deletion. All of that is gone; the actions auto-detect which layout a repo
+uses by the presence of `.pnpm-prod/pnpm-lock.yaml`.
 
 ## The pre-commit hook
 
-Husky's `pre-commit` regenerates two lockfiles and stages them:
-
-1. `.pnpm-prod/pnpm-lock.yaml` — the published-mode lockfile CI installs from.
-2. The root `pnpm-lock.yaml`, normalised to published mode.
-
-Both run with `DEV_LOCAL=false` and `--lockfile-only`, so `node_modules` is untouched and local
-`DEV_LOCAL` links keep working. The second step exists because CI installs from `.pnpm-prod`, but
-any nested `pnpm run` in CI checks `node_modules` against the **root** lockfile — a dev-mode
-(`file:`) lockfile there fails the frozen install it triggers.
-
-If the hook fails, the commit is aborted with pnpm's output; fix the dependency problem rather than
-bypassing it.
+Husky's `pre-commit` is now just a guard: it fails the commit if a `file:/devcontainer` path
+appears in the lockfile or a manifest (a leak from a pre-conversion tool run). There is no lockfile
+regeneration step any more — the root lockfile is always in published mode because nothing rewrites
+resolution locally.
 
 ## Dependency consistency
 
