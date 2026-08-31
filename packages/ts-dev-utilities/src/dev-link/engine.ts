@@ -1,6 +1,7 @@
 import { lstat, readFile, readlink, realpath, rm, stat, symlink, unlink, writeFile } from 'node:fs/promises';
-import { dirname, join, resolve, sep } from 'node:path';
+import { dirname, join, relative, resolve, sep } from 'node:path';
 import { parseJson } from '../json/jsonc.js';
+import { discoverProjects } from '../project/discover.js';
 import { loadDevLinkConfig } from './config.js';
 import type {
   CheckoutState,
@@ -46,6 +47,37 @@ export function isCIEnvironment(): boolean {
 
 function nmPath(cwd: string, pkg: string): string {
   return join(cwd, 'node_modules', ...pkg.split('/'));
+}
+
+/**
+ * Every directory whose `node_modules` can hold an installed entry for a mapped
+ * package: the workspace root plus, in a pnpm workspace, each member project —
+ * pnpm gives every member its own `node_modules`, and Node resolves a project's
+ * deps from that nested entry, which shadows the root one. Only consulted when
+ * `pnpm-workspace.yaml` exists; discovery's non-workspace fallback (a recursive
+ * package.json glob) is far too broad for overlay purposes.
+ */
+async function getInstallRoots(cwd: string): Promise<string[]> {
+  const roots = [resolve(cwd)];
+  try {
+    await stat(join(cwd, 'pnpm-workspace.yaml'));
+  } catch {
+    return roots;
+  }
+  try {
+    for (const project of await discoverProjects({ cwd })) {
+      const dir = resolve(project.directory);
+      if (!roots.includes(dir)) roots.push(dir);
+    }
+  } catch {
+    // Discovery failure never blocks the overlay — fall back to the root alone.
+  }
+  return roots;
+}
+
+/** Display label for an entry: bare pkg at the root, pkg (dir) in a member. */
+function pkgLabel(pkg: string, location: string | undefined): string {
+  return location ? `${pkg} (${location})` : pkg;
 }
 
 async function readSidecar(cwd: string): Promise<Record<string, string>> {
@@ -157,46 +189,51 @@ async function realpathOrNull(path: string): Promise<string | null> {
 // ----------------------------------------------------------------
 
 async function linkOne(
+  root: string,
   cwd: string,
   pkg: string,
   relPath: string,
   sidecar: Record<string, string>,
+  location: string | undefined,
 ): Promise<DevLinkOpResult> {
-  const nm = nmPath(cwd, pkg);
+  const nm = nmPath(root, pkg);
+  const label = pkgLabel(pkg, location);
 
   let entryStat;
   try {
     entryStat = await lstat(nm);
   } catch {
-    return { pkg, action: 'skipped', message: `${pkg}: not installed — skipped` };
+    return { pkg, location, action: 'skipped', message: `${label}: not installed — skipped` };
   }
   if (!entryStat.isSymbolicLink()) {
     return {
       pkg,
+      location,
       action: 'skipped',
-      message: `${pkg}: node_modules entry is a real directory — skipped (dev-link never replaces one)`,
+      message: `${label}: node_modules entry is a real directory — skipped (dev-link never replaces one)`,
     };
   }
 
   const localAbs = resolve(cwd, relPath);
   const localManifest = await readManifest(localAbs);
   if (!localManifest) {
-    return { pkg, action: 'skipped', message: `${pkg}: checkout not found at ${relPath} — skipped` };
+    return { pkg, location, action: 'skipped', message: `${label}: checkout not found at ${relPath} — skipped` };
   }
 
   const missing = await missingArtifacts(localAbs, localManifest);
   if (missing.length > 0) {
     return {
       pkg,
+      location,
       action: 'refused',
-      message: `${pkg}: not built (missing ${missing.join(', ')}) — run pnpm build in ${relPath}`,
+      message: `${label}: not built (missing ${missing.join(', ')}) — run pnpm build in ${relPath}`,
     };
   }
 
   const localReal = await realpathOrNull(localAbs);
   const currentReal = await realpathOrNull(nm);
   if (localReal !== null && currentReal === localReal) {
-    return { pkg, action: 'already-linked', message: `${pkg}: already linked → ${relPath}` };
+    return { pkg, location, action: 'already-linked', message: `${label}: already linked → ${relPath}` };
   }
 
   let previousVersion = '?';
@@ -217,13 +254,16 @@ async function linkOne(
   const localVersion = localManifest.version ?? '?';
   return {
     pkg,
+    location,
     action: 'linked',
-    message: `linked ${pkg} → ${relPath} (local ${localVersion}, was ${previousVersion})`,
+    message: `linked ${label} → ${relPath} (local ${localVersion}, was ${previousVersion})`,
   };
 }
 
 /**
- * Repoints installed `node_modules/<pkg>` symlinks at local checkouts.
+ * Repoints installed `node_modules/<pkg>` symlinks at local checkouts — at the
+ * workspace root and in every member project whose own `node_modules` holds
+ * the package (the nested entry is the one Node actually resolves there).
  * Refuses to run under CI. Exit-code policy is the caller's: a 'refused'
  * result (unbuilt checkout) is the only failure state.
  */
@@ -236,14 +276,34 @@ export async function linkPackages(
   }
   const cwd = options.cwd ?? process.cwd();
   const selected = selectPackages(config, options.packages);
-  const sidecar = await readSidecar(cwd);
+  const roots = await getInstallRoots(cwd);
+  const sidecars = new Map<string, Record<string, string>>();
 
   const results: DevLinkOpResult[] = [];
   for (const [pkg, relPath] of selected) {
-    results.push(await linkOne(cwd, pkg, relPath, sidecar));
+    const installedRoots: string[] = [];
+    for (const root of roots) {
+      try {
+        await lstat(nmPath(root, pkg));
+        installedRoots.push(root);
+      } catch {
+        // not installed at this root
+      }
+    }
+    if (installedRoots.length === 0) {
+      results.push({ pkg, action: 'skipped', message: `${pkg}: not installed — skipped` });
+      continue;
+    }
+    for (const root of installedRoots) {
+      if (!sidecars.has(root)) sidecars.set(root, await readSidecar(root));
+      const location = relative(cwd, root) || undefined;
+      results.push(await linkOne(root, cwd, pkg, relPath, sidecars.get(root)!, location));
+    }
   }
 
-  await writeSidecar(cwd, sidecar);
+  for (const [root, sidecar] of sidecars) {
+    await writeSidecar(root, sidecar);
+  }
   return results;
 }
 
@@ -252,27 +312,29 @@ export async function linkPackages(
 // ----------------------------------------------------------------
 
 async function unlinkOne(
-  cwd: string,
+  root: string,
   pkg: string,
   sidecar: Record<string, string>,
+  location: string | undefined,
 ): Promise<DevLinkOpResult> {
-  const nm = nmPath(cwd, pkg);
+  const nm = nmPath(root, pkg);
+  const label = pkgLabel(pkg, location);
 
   let entryStat;
   try {
     entryStat = await lstat(nm);
   } catch {
     delete sidecar[pkg];
-    return { pkg, action: 'noop', message: `${pkg}: not installed` };
+    return { pkg, location, action: 'noop', message: `${label}: not installed` };
   }
   if (!entryStat.isSymbolicLink()) {
-    return { pkg, action: 'noop', message: `${pkg}: node_modules entry is a real directory — untouched` };
+    return { pkg, location, action: 'noop', message: `${label}: node_modules entry is a real directory — untouched` };
   }
 
   const currentTarget = await readlink(nm);
   if (isStoreTarget(nm, currentTarget)) {
     delete sidecar[pkg];
-    return { pkg, action: 'noop', message: `${pkg}: already published` };
+    return { pkg, location, action: 'noop', message: `${label}: already published` };
   }
 
   const recorded = sidecar[pkg];
@@ -283,7 +345,7 @@ async function unlinkOne(
       await unlink(nm);
       await symlink(recorded, nm, 'dir');
       delete sidecar[pkg];
-      return { pkg, action: 'restored', message: `${pkg}: restored → ${recorded}` };
+      return { pkg, location, action: 'restored', message: `${label}: restored → ${recorded}` };
     }
   }
 
@@ -291,14 +353,16 @@ async function unlinkOne(
   delete sidecar[pkg];
   return {
     pkg,
+    location,
     action: 'removed',
-    message: `${pkg}: link removed but the original target is gone — run pnpm install to restore the published package`,
+    message: `${label}: link removed but the original target is gone — run pnpm install to restore the published package`,
   };
 }
 
 /**
- * Restores linked packages to their original pnpm-installed symlinks. A
- * 'removed' result (no restorable original) is the only failure state.
+ * Restores linked packages to their original pnpm-installed symlinks, at every
+ * install root where an entry (or a sidecar record) exists. A 'removed' result
+ * (no restorable original) is the only failure state.
  */
 export async function unlinkPackages(
   config: DevLinkConfig,
@@ -306,14 +370,34 @@ export async function unlinkPackages(
 ): Promise<DevLinkOpResult[]> {
   const cwd = options.cwd ?? process.cwd();
   const selected = selectPackages(config, options.packages);
-  const sidecar = await readSidecar(cwd);
+  const roots = await getInstallRoots(cwd);
+  const sidecars = new Map<string, Record<string, string>>();
+  for (const root of roots) {
+    sidecars.set(root, await readSidecar(root));
+  }
 
   const results: DevLinkOpResult[] = [];
   for (const [pkg] of selected) {
-    results.push(await unlinkOne(cwd, pkg, sidecar));
+    const perPkg: DevLinkOpResult[] = [];
+    for (const root of roots) {
+      const sidecar = sidecars.get(root)!;
+      const hasEntry = await lstat(nmPath(root, pkg)).then(
+        () => true,
+        () => false,
+      );
+      if (!hasEntry && !(pkg in sidecar)) continue;
+      const location = relative(cwd, root) || undefined;
+      perPkg.push(await unlinkOne(root, pkg, sidecar, location));
+    }
+    if (perPkg.length === 0) {
+      perPkg.push({ pkg, action: 'noop', message: `${pkg}: not installed` });
+    }
+    results.push(...perPkg);
   }
 
-  await writeSidecar(cwd, sidecar);
+  for (const [root, sidecar] of sidecars) {
+    await writeSidecar(root, sidecar);
+  }
   return results;
 }
 
@@ -321,8 +405,14 @@ export async function unlinkPackages(
 // status
 // ----------------------------------------------------------------
 
-async function statusOne(cwd: string, pkg: string, relPath: string): Promise<DevLinkStatusEntry> {
-  const nm = nmPath(cwd, pkg);
+async function statusOne(
+  root: string,
+  cwd: string,
+  pkg: string,
+  relPath: string,
+  location: string | undefined,
+): Promise<DevLinkStatusEntry> {
+  const nm = nmPath(root, pkg);
   const localAbs = resolve(cwd, relPath);
 
   let checkout: CheckoutState = 'ready';
@@ -361,13 +451,16 @@ async function statusOne(cwd: string, pkg: string, relPath: string): Promise<Dev
     }
   }
 
-  return { pkg, localPath: relPath, install, checkout, installedVersion, localVersion };
+  return { pkg, location, localPath: relPath, install, checkout, installedVersion, localVersion };
 }
 
 /**
  * Reports each mapped package's state, derived by stat-ing the real symlink
- * targets — never trusted from the sidecar. Sidecar entries for packages that
- * are no longer linked mean a real pnpm install reset the overlay.
+ * targets — never trusted from the sidecar. A package installed in several
+ * places (workspace root, member projects) gets one entry per install root; a
+ * package installed nowhere gets a single root 'not-installed' entry. Sidecar
+ * entries for packages that are no longer linked mean a real pnpm install
+ * reset the overlay.
  */
 export async function getDevLinkStatus(
   config: DevLinkConfig,
@@ -375,15 +468,41 @@ export async function getDevLinkStatus(
 ): Promise<DevLinkStatusReport> {
   const cwd = options.cwd ?? process.cwd();
   const selected = selectPackages(config, options.packages);
+  const roots = await getInstallRoots(cwd);
 
   const entries: DevLinkStatusEntry[] = [];
+  const byRootPkg = new Map<string, DevLinkStatusEntry>();
   for (const [pkg, relPath] of selected) {
-    entries.push(await statusOne(cwd, pkg, relPath));
+    const perPkg: DevLinkStatusEntry[] = [];
+    for (const root of roots) {
+      const hasEntry = await lstat(nmPath(root, pkg)).then(
+        () => true,
+        () => false,
+      );
+      if (!hasEntry) continue;
+      const location = relative(cwd, root) || undefined;
+      const entry = await statusOne(root, cwd, pkg, relPath, location);
+      byRootPkg.set(`${root}\0${pkg}`, entry);
+      perPkg.push(entry);
+    }
+    if (perPkg.length === 0) {
+      const entry = await statusOne(resolve(cwd), cwd, pkg, relPath, undefined);
+      byRootPkg.set(`${resolve(cwd)}\0${pkg}`, entry);
+      perPkg.push(entry);
+    }
+    entries.push(...perPkg);
   }
 
-  const sidecar = await readSidecar(cwd);
-  const byPkg = new Map(entries.map((e) => [e.pkg, e]));
-  const resetByInstall = Object.keys(sidecar).filter((pkg) => byPkg.get(pkg)?.install === 'published');
+  const resetByInstall: string[] = [];
+  for (const root of roots) {
+    const sidecar = await readSidecar(root);
+    for (const pkg of Object.keys(sidecar)) {
+      const entry = byRootPkg.get(`${root}\0${pkg}`);
+      if (entry?.install === 'published' && !resetByInstall.includes(pkg)) {
+        resetByInstall.push(pkg);
+      }
+    }
+  }
 
   return { entries, resetByInstall };
 }

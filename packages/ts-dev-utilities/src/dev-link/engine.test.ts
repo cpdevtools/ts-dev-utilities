@@ -184,6 +184,46 @@ describe('dev-link engine', () => {
     expect(result.results[0].action).toBe('linked');
   });
 
+  it('links, reports, and unlinks nested member-project installs in a pnpm workspace', async () => {
+    // Same package also installed in a member project's own node_modules — the
+    // entry Node actually resolves for that project's code.
+    const NESTED_TARGET = join(
+      '..', '..', '..', '..',
+      'node_modules', '.pnpm', '@scope+pkg@1.0.0', 'node_modules', '@scope', 'pkg',
+    );
+    await writeFile(join(repoDir, 'package.json'), JSON.stringify({ name: 'root', private: true }));
+    await writeFile(join(repoDir, 'pnpm-workspace.yaml'), 'packages:\n  - packages/*\n');
+    const appDir = join(repoDir, 'packages', 'app');
+    const appNm = join(appDir, 'node_modules', '@scope', 'pkg');
+    await mkdir(join(appDir, 'node_modules', '@scope'), { recursive: true });
+    await writeFile(join(appDir, 'package.json'), JSON.stringify({ name: 'app', version: '0.0.0' }));
+    await symlink(NESTED_TARGET, appNm, 'dir');
+
+    const linked = await linkPackages(config, { cwd: repoDir });
+    expect(linked.map((r) => [r.action, r.location])).toEqual([
+      ['linked', undefined],
+      ['linked', join('packages', 'app')],
+    ]);
+
+    const report = await getDevLinkStatus(config, { cwd: repoDir });
+    expect(report.entries.map((e) => [e.install, e.location])).toEqual([
+      ['linked', undefined],
+      ['linked', join('packages', 'app')],
+    ]);
+
+    // Each install root keeps its own sidecar, so unlink restores both entries
+    // byte-identically.
+    const nestedSidecar = JSON.parse(
+      await readFile(join(appDir, 'node_modules', '.dev-link.json'), 'utf-8'),
+    );
+    expect(nestedSidecar[PKG]).toBe(NESTED_TARGET);
+
+    const unlinked = await unlinkPackages(config, { cwd: repoDir });
+    expect(unlinked.map((r) => r.action)).toEqual(['restored', 'restored']);
+    expect(await readlink(nm())).toBe(STORE_TARGET);
+    expect(await readlink(appNm)).toBe(NESTED_TARGET);
+  });
+
   it('auto without a config is a silent no-op', async () => {
     vi.stubEnv('DEV_LOCAL', 'true');
     expect((await autoLink({ cwd: repoDir })).ran).toBe(false);

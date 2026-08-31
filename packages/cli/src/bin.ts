@@ -302,9 +302,10 @@ async function cmdDevLink(args: string[]): Promise<void> {
     if (results.some((r) => r.action === 'removed')) process.exitCode = 1;
   } else {
     const report = await getDevLinkStatus(config, { cwd, packages });
-    const width = Math.max(...report.entries.map((e) => e.pkg.length));
+    const name = (e: DevLinkStatusEntry): string => (e.location ? `${e.pkg} (${e.location})` : e.pkg);
+    const width = Math.max(...report.entries.map((e) => name(e).length));
     for (const e of report.entries) {
-      console.log(`${e.pkg.padEnd(width)}  ${formatDevLinkStatus(e)}`);
+      console.log(`${name(e).padEnd(width)}  ${formatDevLinkStatus(e)}`);
     }
     if (report.resetByInstall.length > 0) {
       console.log(
