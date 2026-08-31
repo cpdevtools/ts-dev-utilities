@@ -109,12 +109,12 @@ async function cmdRun(args: string[]): Promise<void> {
 type OutputStyle = 'stream' | 'task' | 'summary' | 'silent';
 
 /**
- * Resolves the --output-style flag. When omitted, defaults to 'summary' under
- * CI (grouped, non-interleaved logs with failures directly above the final
- * counts read best in CI) and 'stream' otherwise.
+ * Resolves the --output-style flag. When omitted, defaults to 'task' under CI
+ * (grouped, non-interleaved blocks that still show progress as tasks finish)
+ * and 'stream' otherwise.
  */
 function parseOutputStyle(value: string | boolean | undefined): OutputStyle {
-  if (value === undefined) return isCI() ? 'summary' : 'stream';
+  if (value === undefined) return isCI() ? 'task' : 'stream';
   const v = String(value).toLowerCase();
   if (v === 'stream' || v === 'task' || v === 'summary' || v === 'silent') return v;
   // Thrown (not process.exit) so the top-level catch reports it and stdio drains.
@@ -371,7 +371,7 @@ Commands:
   dev-link auto                 postinstall hook: link everything mapped, only when DEV_LOCAL=true and not CI; always exits 0
 
 Options (run):
-  --output-style <style>   How task output is shown (default: stream, or summary under CI):
+  --output-style <style>   How task output is shown (default: stream, or task under CI):
     stream                   Live output as it happens, prefixed with [project]
     task                     Each task's output, grouped by project, as soon as that task finishes
     summary                  Nothing during the run; every task's output at the end, failures last
