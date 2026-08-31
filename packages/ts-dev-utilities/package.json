@@ -71,6 +71,10 @@
     "./dep-versions": {
       "types": "./dist/dep-versions/index.d.ts",
       "default": "./dist/dep-versions/index.js"
+    },
+    "./dev-link": {
+      "types": "./dist/dev-link/index.d.ts",
+      "default": "./dist/dev-link/index.js"
     }
   },
   "files": [
