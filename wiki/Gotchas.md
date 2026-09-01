@@ -74,6 +74,15 @@ fallback. In a container image that installs `devutil` globally, pnpm has to be 
 is set when the cap is hit — the tail is what survives being reported. `onOutput` / `--output-style
 stream` is independent and unbounded, so a runaway task can still flood the log.
 
+## Wireit self-quiets under a pipe — the runner overrides it
+
+Wireit picks its `quiet-ci` logger whenever `CI` is set **or stdout is not a TTY**, and that logger
+swallows successful commands' child output (you get `Analyzing` / progress-percent lines and
+nothing else). Under this runner a task's stdout is *always* a pipe, so every `"build": "wireit"`
+script would report near-empty output in every output style, local and CI alike. `runScripts`
+therefore defaults `WIREIT_LOGGER=simple` in each task's spawn env; an ambient `WIREIT_LOGGER`,
+`env`, or a `beforeTask` return still overrides it.
+
 ## Concurrency is unlimited by default
 
 `runScripts` defaults to `Infinity`. On a wide graph that starts every independent project at once,
