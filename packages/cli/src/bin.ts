@@ -62,9 +62,16 @@ async function cmdRun(args: string[]): Promise<void> {
   }
 
   const concurrencyRaw = flags['concurrency'];
+  const concurrency = concurrencyRaw ? parseInt(concurrencyRaw as string, 10) : undefined;
   const maxOutputRaw = flags['max-output'];
   const outputStyle = parseOutputStyle(flags['output-style']);
   const streamWriter = outputStyle === 'stream' ? createStreamWriter() : undefined;
+  // 'task' with --concurrency 1: only one task can be emitting, so block
+  // integrity is guaranteed without buffering — relay output VERBATIM as it is
+  // produced. A task whose own tooling (a nested devutil, wireit) emits
+  // per-unit blocks as inner units finish then shows those blocks at their
+  // real completion times instead of holding them until the outer task ends.
+  const relay = outputStyle === 'task' && concurrency === 1;
   // 'task' prints each task's block the moment it finishes. afterTask is not
   // called for tasks that never ran a script (missing-script=error), so track
   // what was printed and catch up on unprinted failures after the run.
@@ -72,29 +79,42 @@ async function cmdRun(args: string[]): Promise<void> {
   // A task's output is only printed once it finishes, so a run that is killed
   // mid-flight (terminated CI runner, timeout) would otherwise report nothing
   // at all for whatever was still running. Accumulate output as it arrives and
-  // flush the unprinted remainder from a signal handler.
+  // flush the unprinted remainder from a signal handler. Relay mode needs
+  // neither: everything is already on screen.
   const maxOutputBytes = maxOutputRaw ? parseInt(maxOutputRaw as string, 10) : DEFAULT_MAX_OUTPUT;
-  const showsOutput = outputStyle === 'task' || outputStyle === 'summary';
+  const showsOutput = (outputStyle === 'task' && !relay) || outputStyle === 'summary';
   const inFlight = showsOutput ? createOutputAccumulator(maxOutputBytes) : undefined;
   if (inFlight) installAbortFlush(inFlight, printedTasks);
 
   const summary = await runScripts({
     scripts: positional,
     failFast: flags['fail-fast'] === true,
-    concurrency: concurrencyRaw ? parseInt(concurrencyRaw as string, 10) : undefined,
+    concurrency,
     cwd: flags['cwd'] as string | undefined,
     missingScript: flags['missing-script'] as 'skip' | 'error' | undefined,
     maxOutputBytes: maxOutputRaw ? parseInt(maxOutputRaw as string, 10) : undefined,
     onOutput:
-      streamWriter || inFlight
+      streamWriter || inFlight || relay
         ? (project, chunk) => {
+            if (relay) {
+              process.stdout.write(chunk);
+              return;
+            }
             streamWriter?.write(project.name, chunk);
             inFlight?.write(project.name, chunk);
           }
         : undefined,
+    beforeTask: relay ? (project) => printTaskStart(project.name) : undefined,
     afterTask:
       outputStyle === 'task'
         ? (_project, result) => {
+            if (relay) {
+              printTaskEnd(result);
+              // Failed tasks are re-dumped whole after the run; everything
+              // else has already been shown in full.
+              if (result.state !== 'failed') printedTasks.add(result.project);
+              return;
+            }
             if (printTaskBlock(result)) printedTasks.add(result.project);
             inFlight?.discard(result.project);
           }
@@ -145,6 +165,17 @@ function isCI(): boolean {
 }
 
 const TASK_MARKS: Record<string, string> = { passed: '✅', cancelled: '🚫', failed: '❌' };
+
+/** Relay mode: header printed when a task starts (its output follows live). */
+function printTaskStart(project: string): void {
+  console.log(`\n${'─'.repeat(60)}\n▶  ${project}\n${'─'.repeat(60)}`);
+}
+
+/** Relay mode: completion marker printed when a task finishes. */
+function printTaskEnd(task: TaskResult): void {
+  const mark = TASK_MARKS[task.state] ?? '•';
+  console.log(`${mark}  ${task.project} (${(task.durationMs / 1000).toFixed(1)}s)`);
+}
 
 /**
  * Prints one task's full captured output under a per-project header. Returns
@@ -451,7 +482,9 @@ Commands:
 Options (run):
   --output-style <style>   How task output is shown (default: stream, or task under CI):
     stream                   Live output as it happens, prefixed with [project]
-    task                     Each task's output, grouped by project, as soon as that task finishes
+    task                     Each task's output, grouped by project, as soon as that task finishes.
+                             With --concurrency 1, output is relayed verbatim as it is produced, so
+                             per-unit blocks from a task's own tooling land at their real times
     summary                  Nothing during the run; every task's output at the end, failures last
     silent                   Only the final counts (plus failed project names)
   --fail-fast              Stop on first failure, cancel in-flight tasks
