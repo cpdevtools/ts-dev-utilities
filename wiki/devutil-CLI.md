@@ -53,7 +53,7 @@ devutil run github.actions.test --fail-fast --concurrency 4
 | Style     | Behaviour                                                                                                                                                               |
 | --------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `stream`  | Live output as it happens, every line prefixed with `[project]`. Default outside CI.                                                                                    |
-| `task`    | Each task's output, grouped under a per-project header, printed as soon as that task finishes. Blocks appear in completion order and never interleave. Default under CI. |
+| `task`    | Each task's output, grouped under a per-project header, printed as soon as that task finishes. Blocks appear in completion order and never interleave. With `--concurrency 1`, output is relayed verbatim as it is produced — blocks emitted by a task's own tooling (a nested `devutil run`, wireit) land at their real completion times instead of when the outer task ends. Default under CI. |
 | `summary` | Nothing during the run; afterwards every task's output, grouped under a per-project header, failures last, so they appear directly above the summary.                    |
 | `silent`  | Only the final pass/fail counts (failed projects are still named).                                                                                                      |
 
