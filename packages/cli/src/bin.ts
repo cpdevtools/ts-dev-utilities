@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import { writeSync } from 'node:fs';
 import { runScripts } from '@cpdevtools/ts-dev-utilities/runner';
 import { discoverProjects, buildDependencyGraph } from '@cpdevtools/ts-dev-utilities/project';
 import { checkDepVersions, fixDepVersions } from '@cpdevtools/ts-dev-utilities/dep-versions';
@@ -68,6 +69,14 @@ async function cmdRun(args: string[]): Promise<void> {
   // called for tasks that never ran a script (missing-script=error), so track
   // what was printed and catch up on unprinted failures after the run.
   const printedTasks = new Set<string>();
+  // A task's output is only printed once it finishes, so a run that is killed
+  // mid-flight (terminated CI runner, timeout) would otherwise report nothing
+  // at all for whatever was still running. Accumulate output as it arrives and
+  // flush the unprinted remainder from a signal handler.
+  const maxOutputBytes = maxOutputRaw ? parseInt(maxOutputRaw as string, 10) : DEFAULT_MAX_OUTPUT;
+  const showsOutput = outputStyle === 'task' || outputStyle === 'summary';
+  const inFlight = showsOutput ? createOutputAccumulator(maxOutputBytes) : undefined;
+  if (inFlight) installAbortFlush(inFlight, printedTasks);
 
   const summary = await runScripts({
     scripts: positional,
@@ -76,13 +85,18 @@ async function cmdRun(args: string[]): Promise<void> {
     cwd: flags['cwd'] as string | undefined,
     missingScript: flags['missing-script'] as 'skip' | 'error' | undefined,
     maxOutputBytes: maxOutputRaw ? parseInt(maxOutputRaw as string, 10) : undefined,
-    onOutput: streamWriter
-      ? (project, chunk) => streamWriter.write(project.name, chunk)
-      : undefined,
+    onOutput:
+      streamWriter || inFlight
+        ? (project, chunk) => {
+            streamWriter?.write(project.name, chunk);
+            inFlight?.write(project.name, chunk);
+          }
+        : undefined,
     afterTask:
       outputStyle === 'task'
         ? (_project, result) => {
             if (printTaskBlock(result)) printedTasks.add(result.project);
+            inFlight?.discard(result.project);
           }
         : undefined,
   });
@@ -185,6 +199,69 @@ function createStreamWriter(): {
       partial.clear();
     },
   };
+}
+
+/** Mirrors the runner's own default capture limit (see RunOptions.maxOutputBytes). */
+const DEFAULT_MAX_OUTPUT = 1_000_000;
+
+/**
+ * Accumulates each project's output as it arrives, keeping at most the last
+ * maxBytes per project — the same tail-retention the runner applies to its own
+ * capture, so a flushed buffer matches what the finished task would have shown.
+ */
+function createOutputAccumulator(maxBytes: number): {
+  write: (project: string, chunk: string) => void;
+  discard: (project: string) => void;
+  entries: () => IterableIterator<[string, string]>;
+} {
+  const buffers = new Map<string, string>();
+
+  return {
+    write(project, chunk) {
+      const next = (buffers.get(project) ?? '') + chunk;
+      buffers.set(project, next.length > maxBytes ? next.slice(next.length - maxBytes) : next);
+    },
+    discard(project) {
+      buffers.delete(project);
+    },
+    entries() {
+      return buffers.entries();
+    },
+  };
+}
+
+/**
+ * Prints the output of every task still in flight when the process is signalled,
+ * so a killed run is diagnosable from its first occurrence.
+ *
+ * Writes with writeSync rather than console.log: stdout to a pipe is async, and
+ * the exit that follows a signal drops anything still buffered — which is the
+ * failure this exists to prevent.
+ */
+function installAbortFlush(
+  accumulator: { entries: () => IterableIterator<[string, string]> },
+  printed: Set<string>,
+): void {
+  let flushed = false;
+
+  const flush = (signal: NodeJS.Signals, code: number): void => {
+    if (flushed) return;
+    flushed = true;
+
+    for (const [project, output] of accumulator.entries()) {
+      if (printed.has(project) || !output) continue;
+      const rule = '\u2500'.repeat(60);
+      writeSync(
+        1,
+        `\n${rule}\n\u26A0\uFE0F  ${project} (interrupted by ${signal} — partial output)\n${rule}\n${output.trimEnd()}\n`,
+      );
+    }
+
+    process.exit(code);
+  };
+
+  process.once('SIGINT', () => flush('SIGINT', 130));
+  process.once('SIGTERM', () => flush('SIGTERM', 143));
 }
 
 async function cmdDiscover(args: string[]): Promise<void> {
