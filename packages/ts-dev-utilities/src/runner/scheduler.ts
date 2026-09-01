@@ -186,6 +186,12 @@ export async function runScripts(options: RunOptions): Promise<RunSummary> {
     }
 
     const spawnEnv: NodeJS.ProcessEnv = {
+      // Wireit silently switches to its quiet-ci logger when CI is set OR
+      // stdout is not a TTY — and under this runner a task's stdout is always
+      // a pipe, so successful wireit scripts' child output would never reach
+      // the capture. Default to the simple logger; anything in the ambient
+      // env, `env`, or the beforeTask hook still overrides.
+      WIREIT_LOGGER: 'simple',
       ...process.env,
       ...env,
       PROJECT_NAME: name,

@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { runScripts } from './scheduler.js';
 import type { RunOptions } from './types.js';
 import type { Project } from '../project/types.js';
@@ -339,6 +339,40 @@ describe('runScripts: empty workspace', () => {
     expect(summary.skipped).toHaveLength(0);
     expect(summary.cancelled).toHaveLength(0);
     expect(summary.noScript).toHaveLength(0);
+  });
+});
+
+// ----------------------------------------------------------------
+// spawn env defaults
+// ----------------------------------------------------------------
+
+describe('runScripts: spawn env', () => {
+  it('defaults WIREIT_LOGGER=simple so wireit does not quiet-ci itself under the capture pipe', async () => {
+    const projects = [makeProject('pkg-a')];
+    let seen: string | undefined;
+
+    const execFn: MockExecFn = async (_s, _c, env) => {
+      seen = env.WIREIT_LOGGER;
+      return { exitCode: 0, output: '', truncated: false };
+    };
+
+    await runScripts(baseOptions(projects, execFn));
+    expect(seen).toBe('simple');
+  });
+
+  it('an ambient WIREIT_LOGGER wins over the default', async () => {
+    vi.stubEnv('WIREIT_LOGGER', 'metrics');
+    const projects = [makeProject('pkg-a')];
+    let seen: string | undefined;
+
+    const execFn: MockExecFn = async (_s, _c, env) => {
+      seen = env.WIREIT_LOGGER;
+      return { exitCode: 0, output: '', truncated: false };
+    };
+
+    await runScripts(baseOptions(projects, execFn));
+    vi.unstubAllEnvs();
+    expect(seen).toBe('metrics');
   });
 });
 
