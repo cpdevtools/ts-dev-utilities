@@ -14,6 +14,9 @@ const DEFAULT_MAX_OUTPUT_BYTES = 1_000_000;
  * - The failed project's transitive dependents are marked `skipped`.
  * - With `failFast: true`, in-flight tasks are cancelled via AbortSignal and all
  *   remaining pending tasks are marked `skipped`.
+ *
+ * The `beforeTask`/`afterTask` hooks run for every project that reaches the
+ * ready set, including those defining none of the target scripts (`no-script`).
  */
 export async function runScripts(options: RunOptions): Promise<RunSummary> {
   const {
@@ -161,10 +164,33 @@ export async function runScripts(options: RunOptions): Promise<RunSummary> {
             `None of the target scripts [${scripts.join(', ')}] are defined in "${name}"`,
           ),
         );
-      } else {
-        states.set(name, 'no-script');
-        taskResults.set(name, makeResult(name, node.project.directory, 'no-script', 0));
+        return;
       }
+
+      states.set(name, 'no-script');
+      taskResults.set(name, makeResult(name, node.project.directory, 'no-script', 0));
+
+      // A no-script task is still a task: it occupies a node in the graph, it
+      // unblocks its dependents, and it is reported as a success. The hooks run
+      // for it too — a caller doing per-project work around the script (version
+      // stamping, packaging, publishing) needs that work to happen for every
+      // project it scheduled, in dependency order, not only for the ones that
+      // happened to define the script. Callers that care can branch on
+      // `result.state === 'no-script'`. Any env beforeTask returns is dropped,
+      // since nothing is spawned.
+      if (beforeTask) {
+        try {
+          await beforeTask(node.project);
+        } catch (err) {
+          states.set(name, 'failed');
+          taskResults.set(
+            name,
+            makeResult(name, node.project.directory, 'failed', 0, (err as Error).message),
+          );
+          return; // afterTask is NOT called — same contract as the script path
+        }
+      }
+      await finalize(name, node.project.directory);
       return;
     }
 

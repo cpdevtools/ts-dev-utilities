@@ -594,14 +594,82 @@ describe('runScripts: afterTask hook', () => {
     expect(afterCalled).toBe(false);
   });
 
-  it('afterTask is NOT called for no-script tasks', async () => {
+  it('hooks ARE called for no-script tasks, with state no-script', async () => {
     const projects = [makeProject('pkg-a', [], {})]; // no scripts
-    let afterCalled = false;
+    const before: string[] = [];
+    const after: [string, string][] = [];
+
+    const execFn: MockExecFn = async () => ({ exitCode: 0, output: '', truncated: false });
+
+    const summary = await runScripts(
+      baseOptions(projects, execFn, {
+        beforeTask: (p) => {
+          before.push(p.name);
+        },
+        afterTask: (p, result) => {
+          after.push([p.name, result.state]);
+        },
+      }),
+    );
+
+    expect(before).toEqual(['pkg-a']);
+    expect(after).toEqual([['pkg-a', 'no-script']]);
+    expect(summary.noScript.map((t) => t.project)).toEqual(['pkg-a']);
+  });
+
+  it('no-script hooks run in dependency order', async () => {
+    // B depends on A; neither defines the script. A's hooks must still complete
+    // before B's, so per-project work around the script keeps graph ordering.
+    const projects = [makeProject('pkg-a', [], {}), makeProject('pkg-b', ['pkg-a'], {})];
+    const order: string[] = [];
 
     const execFn: MockExecFn = async () => ({ exitCode: 0, output: '', truncated: false });
 
     await runScripts(
       baseOptions(projects, execFn, {
+        beforeTask: async (p) => {
+          await delay(p.name === 'pkg-a' ? 20 : 0);
+          order.push(`before:${p.name}`);
+        },
+        afterTask: (p) => {
+          order.push(`after:${p.name}`);
+        },
+      }),
+    );
+
+    expect(order).toEqual(['before:pkg-a', 'after:pkg-a', 'before:pkg-b', 'after:pkg-b']);
+  });
+
+  it('afterTask throwing on a no-script task fails it and skips dependents', async () => {
+    const projects = [makeProject('pkg-a', [], {}), makeProject('pkg-b', ['pkg-a'])];
+
+    const execFn: MockExecFn = async () => ({ exitCode: 0, output: '', truncated: false });
+
+    const summary = await runScripts(
+      baseOptions(projects, execFn, {
+        afterTask: (p) => {
+          if (p.name === 'pkg-a') throw new Error('pack failed');
+        },
+      }),
+    );
+
+    expect(summary.noScript).toHaveLength(0);
+    expect(summary.failed.map((t) => t.project)).toEqual(['pkg-a']);
+    expect(summary.failed[0].output).toContain('pack failed');
+    expect(summary.skipped.map((t) => t.project)).toEqual(['pkg-b']);
+  });
+
+  it('beforeTask throwing on a no-script task fails it without calling afterTask', async () => {
+    const projects = [makeProject('pkg-a', [], {})];
+    let afterCalled = false;
+
+    const execFn: MockExecFn = async () => ({ exitCode: 0, output: '', truncated: false });
+
+    const summary = await runScripts(
+      baseOptions(projects, execFn, {
+        beforeTask: () => {
+          throw new Error('version stamp failed');
+        },
         afterTask: () => {
           afterCalled = true;
         },
@@ -609,5 +677,26 @@ describe('runScripts: afterTask hook', () => {
     );
 
     expect(afterCalled).toBe(false);
+    expect(summary.failed.map((t) => t.project)).toEqual(['pkg-a']);
+    expect(summary.failed[0].output).toBe('version stamp failed');
+  });
+
+  it('hooks are NOT called for tasks skipped before they start', async () => {
+    // A fails, so B never becomes ready — even though B has no script.
+    const projects = [makeProject('pkg-a'), makeProject('pkg-b', ['pkg-a'], {})];
+    const seen: string[] = [];
+
+    const execFn: MockExecFn = async () => ({ exitCode: 1, output: 'boom', truncated: false });
+
+    const summary = await runScripts(
+      baseOptions(projects, execFn, {
+        beforeTask: (p) => {
+          seen.push(p.name);
+        },
+      }),
+    );
+
+    expect(seen).toEqual(['pkg-a']);
+    expect(summary.skipped.map((t) => t.project)).toEqual(['pkg-b']);
   });
 });

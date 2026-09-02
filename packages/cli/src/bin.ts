@@ -10,6 +10,7 @@ import {
   loadDevLinkConfig,
   unlinkPackages,
 } from '@cpdevtools/ts-dev-utilities/dev-link';
+import type { Project } from '@cpdevtools/ts-dev-utilities/project';
 import type { RunSummary, TaskResult } from '@cpdevtools/ts-dev-utilities/runner';
 import type { DepChange } from '@cpdevtools/ts-dev-utilities/dep-versions';
 import type { DevLinkStatusEntry } from '@cpdevtools/ts-dev-utilities/dev-link';
@@ -86,6 +87,14 @@ async function cmdRun(args: string[]): Promise<void> {
   const inFlight = showsOutput ? createOutputAccumulator(maxOutputBytes) : undefined;
   if (inFlight) installAbortFlush(inFlight, printedTasks);
 
+  // The scheduler runs the task hooks for projects that define none of the
+  // target scripts as well. Those spawn nothing, so relay mode must not frame
+  // them with a task header and a completion marker.
+  const runsAScript = (project: Project): boolean => {
+    const scripts = project.packageJson.scripts ?? {};
+    return positional.some((script) => script in scripts);
+  };
+
   const summary = await runScripts({
     scripts: positional,
     failFast: flags['fail-fast'] === true,
@@ -104,10 +113,15 @@ async function cmdRun(args: string[]): Promise<void> {
             inFlight?.write(project.name, chunk);
           }
         : undefined,
-    beforeTask: relay ? (project) => printTaskStart(project.name) : undefined,
+    beforeTask: relay
+      ? (project) => {
+          if (runsAScript(project)) printTaskStart(project.name);
+        }
+      : undefined,
     afterTask:
       outputStyle === 'task'
         ? (_project, result) => {
+            if (result.state === 'no-script') return;
             if (relay) {
               printTaskEnd(result);
               // Failed tasks are re-dumped whole after the run; everything
@@ -410,7 +424,8 @@ async function cmdDevLink(args: string[]): Promise<void> {
     if (results.some((r) => r.action === 'removed')) process.exitCode = 1;
   } else {
     const report = await getDevLinkStatus(config, { cwd, packages });
-    const name = (e: DevLinkStatusEntry): string => (e.location ? `${e.pkg} (${e.location})` : e.pkg);
+    const name = (e: DevLinkStatusEntry): string =>
+      e.location ? `${e.pkg} (${e.location})` : e.pkg;
     const width = Math.max(...report.entries.map((e) => name(e).length));
     for (const e of report.entries) {
       console.log(`${name(e).padEnd(width)}  ${formatDevLinkStatus(e)}`);
@@ -421,7 +436,9 @@ async function cmdDevLink(args: string[]): Promise<void> {
       );
     }
     if (flags['check'] === true) {
-      const unlinked = report.entries.filter((e) => e.install === 'published' || e.install === 'not-symlink');
+      const unlinked = report.entries.filter(
+        (e) => e.install === 'published' || e.install === 'not-symlink',
+      );
       if (unlinked.length > 0 || report.resetByInstall.length > 0) process.exitCode = 1;
     }
   }
@@ -430,10 +447,12 @@ async function cmdDevLink(args: string[]): Promise<void> {
 function formatDevLinkStatus(e: DevLinkStatusEntry): string {
   if (e.install === 'linked') return `LINKED → ${e.localPath} (${e.localVersion ?? '?'})`;
   if (e.install === 'not-installed') return 'not installed';
-  if (e.install === 'not-symlink') return `real directory (${e.installedVersion ?? '?'}) — dev-link will not touch it`;
+  if (e.install === 'not-symlink')
+    return `real directory (${e.installedVersion ?? '?'}) — dev-link will not touch it`;
   const published = `published (${e.installedVersion ?? '?'})`;
   if (e.checkout === 'missing') return `${published} — checkout missing at ${e.localPath}`;
-  if (e.checkout === 'not-built') return `${published} — checkout not built (run pnpm build in ${e.localPath})`;
+  if (e.checkout === 'not-built')
+    return `${published} — checkout not built (run pnpm build in ${e.localPath})`;
   return published;
 }
 

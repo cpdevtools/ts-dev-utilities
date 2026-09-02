@@ -153,6 +153,9 @@ Called after a project becomes ready and **before** any of its scripts run. Retu
 `Record<string, string>` merges those variables into that project's environment — this is the only
 way to pass per-project values, since `env` is workspace-wide.
 
+It also runs for a project that defines **none** of the target scripts (`no-script`). Nothing is
+spawned for those, so the returned env is ignored — the hook's side effects are the point.
+
 If it throws, the project is marked `failed`, its scripts never run, its dependents are `skipped`,
 and **`afterTask` is not called**.
 
@@ -169,8 +172,14 @@ await runScripts({
 ### `afterTask(project, result)`
 
 Called once the project's scripts have finished and its result is recorded — for `passed`,
-`failed` and `cancelled`. It is **not** called for `no-script` tasks, nor for tasks skipped or
-cancelled before they started.
+`failed`, `cancelled` and `no-script`. It is **not** called for tasks skipped or cancelled before
+they started, nor when `beforeTask` threw.
+
+A `no-script` task is still a node in the graph: it unblocks its dependents and counts as a pass, so
+the hooks run for it too — per-project work wrapped around the script (version stamping, packing,
+publishing) has to happen for every project that was scheduled, in dependency order, not only for
+the ones that happen to define the script. Branch on `result.state === 'no-script'` when the hook
+should only act on work that actually ran.
 
 If it throws, the result is overridden to `failed` (the hook's message is appended to the captured
 output) and dependents are skipped. That makes it a natural place for post-conditions:

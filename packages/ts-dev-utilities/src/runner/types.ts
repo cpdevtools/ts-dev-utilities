@@ -38,7 +38,9 @@ export interface RunOptions {
 
   /**
    * Called after a project becomes ready (all its workspace dependencies have
-   * passed) and before its script(s) are run.
+   * passed) and before its script(s) are run. Also called for projects that
+   * define none of the target scripts, where the returned env is ignored
+   * because nothing is spawned.
    * If this hook throws, the project is marked as failed and afterTask is NOT called.
    * May return env vars to add to that project's scripts; `env` cannot vary per
    * project, so this is the only way to pass per-project values.
@@ -49,9 +51,11 @@ export interface RunOptions {
 
   /**
    * Called after the project's script(s) have finished (passed, failed, or
-   * cancelled) and its final result has been recorded.
-   * Not called when the task had no matching scripts, or was skipped/cancelled
-   * before starting.
+   * cancelled) and its final result has been recorded. Also called for projects
+   * that had no matching scripts, with `result.state === 'no-script'` — branch
+   * on the state if the hook should only act on work that actually ran.
+   * Not called when the task was skipped/cancelled before starting, or when
+   * beforeTask threw.
    * If this hook throws, the result is overridden to 'failed'.
    */
   afterTask?: (project: Project, result: TaskResult) => Promise<void> | void;
