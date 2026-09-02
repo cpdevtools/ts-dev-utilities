@@ -78,7 +78,7 @@ stream` is independent and unbounded, so a runaway task can still flood the log.
 
 Wireit picks its `quiet-ci` logger whenever `CI` is set **or stdout is not a TTY**, and that logger
 swallows successful commands' child output (you get `Analyzing` / progress-percent lines and
-nothing else). Under this runner a task's stdout is *always* a pipe, so every `"build": "wireit"`
+nothing else). Under this runner a task's stdout is _always_ a pipe, so every `"build": "wireit"`
 script would report near-empty output in every output style, local and CI alike. `runScripts`
 therefore defaults `WIREIT_LOGGER=simple` in each task's spawn env; an ambient `WIREIT_LOGGER`,
 `env`, or a `beforeTask` return still overrides it.
@@ -99,8 +99,11 @@ This is not a task failure and produces no `RunSummary` — it is an exception o
 
 If `beforeTask` throws, the project fails, its scripts never run, **and `afterTask` is not called**.
 If `afterTask` throws, the recorded result is overridden to `failed` and its message is appended to
-the captured output. Both skip dependents. `afterTask` is also never called for `no-script` tasks,
-so it is not a reliable "ran for every project" hook.
+the captured output. Both skip dependents.
+
+Both hooks do run for `no-script` tasks (with `result.state === 'no-script'`), so they are a
+reliable "ran for every scheduled project" hook — but not for tasks skipped or cancelled before they
+started, which never become ready.
 
 ## An unparseable `package.json` is a warning, not an error
 
