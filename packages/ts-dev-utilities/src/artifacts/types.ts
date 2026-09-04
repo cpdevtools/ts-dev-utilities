@@ -13,6 +13,11 @@ export interface NpmArtifact {
   path?: string;
   /** Registry IDs to publish to (Phase 3 will resolve full configs) */
   registries?: string[];
+  /**
+   * `false` to publish the version only — no `latest` / `next` / channel
+   * dist-tags. Default: the pointers the version earns are published.
+   */
+  floatingTags?: false;
 }
 
 /**
@@ -36,6 +41,11 @@ export interface DockerArtifact {
   pushedAt?: string;
   /** Registry IDs to publish to (Phase 3 will resolve full configs) */
   registries?: string[];
+  /**
+   * `false` to push the version tag only — no `latest` / `next` / channel
+   * tags. Default: the pointers the version earns are pushed.
+   */
+  floatingTags?: false;
 }
 
 /**
