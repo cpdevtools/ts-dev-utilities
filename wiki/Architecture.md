@@ -13,6 +13,7 @@ ts-dev-utilities/
 │   │       ├── project/         # discovery + dependency graph
 │   │       ├── runner/          # parallel scheduler + process exec
 │   │       ├── dep-versions/    # cross-ecosystem version pinning
+│   │       ├── dev-link/        # local-checkout symlink overlay
 │   │       ├── artifacts/       # artifact descriptor types + writer
 │   │       ├── json/            # JSONC parse/stringify
 │   │       └── index.ts         # globby + change-case re-exports
@@ -30,22 +31,26 @@ flowchart TD
     cli --> runner
     cli --> project
     cli --> dep
+    cli --> devlink
     gf  --> runner
 
     subgraph lib["@cpdevtools/ts-dev-utilities"]
         runner["runner<br/><small>runScripts · scheduler · exec</small>"]
         project["project<br/><small>discoverProjects · DependencyGraph</small>"]
         dep["dep-versions<br/><small>engine · handler registry</small>"]
+        devlink["dev-link<br/><small>config · engine</small>"]
         artifacts["artifacts<br/><small>types · writeArtifact</small>"]
         json["json<br/><small>parseJson · stringifyJson</small>"]
         runner --> project
         project --> json
         dep --> project
+        devlink --> project
+        devlink --> json
     end
 ```
 
-Nothing else in the library depends on `artifacts` or `json`; both exist for consumers. `runner` is
-the only module that starts processes.
+Nothing else in the library depends on `artifacts`; it exists for consumers. `runner` is the only
+module that starts processes, and `dev-link` is the only one that writes into `node_modules`.
 
 ## Design principles
 

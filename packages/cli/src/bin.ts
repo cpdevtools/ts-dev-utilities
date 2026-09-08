@@ -24,27 +24,59 @@ interface ParsedArgs {
   flags: Record<string, string | boolean>;
 }
 
-function parseArgs(args: string[]): ParsedArgs {
+interface FlagSpec {
+  /** Flags that take a value: `--key value`. */
+  value: readonly string[];
+  /** Flags that are switches: `--key`. */
+  boolean: readonly string[];
+}
+
+const CWD_ONLY: FlagSpec = { value: ['cwd'], boolean: [] };
+const RUN_FLAGS: FlagSpec = {
+  value: ['output-style', 'concurrency', 'cwd', 'missing-script', 'max-output'],
+  boolean: ['fail-fast'],
+};
+const DEV_LINK_FLAGS: FlagSpec = { value: ['config', 'cwd'], boolean: ['check'] };
+
+// Every flag is declared as either value-taking or a switch, so a value flag
+// with nothing after it ("--cwd --fail-fast") is an error rather than a silent
+// boolean, a switch never swallows the next positional ("--check pkg"), and a
+// typo ("--concurency 4") is reported instead of ignored.
+function parseArgs(args: string[], spec: FlagSpec): ParsedArgs {
   const positional: string[] = [];
   const flags: Record<string, string | boolean> = {};
 
   for (let i = 0; i < args.length; i++) {
     const arg = args[i];
-    if (arg.startsWith('--')) {
-      const key = arg.slice(2);
-      const next = args[i + 1];
-      if (next !== undefined && !next.startsWith('--')) {
-        flags[key] = next;
-        i++;
-      } else {
-        flags[key] = true;
-      }
-    } else {
+    if (!arg.startsWith('--')) {
       positional.push(arg);
+      continue;
+    }
+    const key = arg.slice(2);
+    if (spec.boolean.includes(key)) {
+      flags[key] = true;
+    } else if (spec.value.includes(key)) {
+      const next = args[i + 1];
+      if (next === undefined || next.startsWith('--')) {
+        throw new Error(`Option --${key} requires a value.`);
+      }
+      flags[key] = next;
+      i++;
+    } else {
+      throw new Error(`Unknown option --${key}.\nRun 'devutil help' for usage.`);
     }
   }
 
   return { positional, flags };
+}
+
+/** Parse an integer option that must be >= 1 (`--concurrency 0` would schedule nothing and exit 0). */
+function parsePositiveInt(option: string, raw: string | boolean): number {
+  const n = Number(raw);
+  if (!Number.isInteger(n) || n < 1) {
+    throw new Error(`Option ${option} must be an integer >= 1 (got '${raw}').`);
+  }
+  return n;
 }
 
 // ----------------------------------------------------------------
@@ -52,7 +84,7 @@ function parseArgs(args: string[]): ParsedArgs {
 // ----------------------------------------------------------------
 
 async function cmdRun(args: string[]): Promise<void> {
-  const { positional, flags } = parseArgs(args);
+  const { positional, flags } = parseArgs(args, RUN_FLAGS);
 
   if (positional.length === 0) {
     console.error(
@@ -63,7 +95,8 @@ async function cmdRun(args: string[]): Promise<void> {
   }
 
   const concurrencyRaw = flags['concurrency'];
-  const concurrency = concurrencyRaw ? parseInt(concurrencyRaw as string, 10) : undefined;
+  const concurrency =
+    concurrencyRaw !== undefined ? parsePositiveInt('--concurrency', concurrencyRaw) : undefined;
   const maxOutputRaw = flags['max-output'];
   const outputStyle = parseOutputStyle(flags['output-style']);
   const streamWriter = outputStyle === 'stream' ? createStreamWriter() : undefined;
@@ -82,7 +115,8 @@ async function cmdRun(args: string[]): Promise<void> {
   // at all for whatever was still running. Accumulate output as it arrives and
   // flush the unprinted remainder from a signal handler. Relay mode needs
   // neither: everything is already on screen.
-  const maxOutputBytes = maxOutputRaw ? parseInt(maxOutputRaw as string, 10) : DEFAULT_MAX_OUTPUT;
+  const maxOutputBytes =
+    maxOutputRaw !== undefined ? parsePositiveInt('--max-output', maxOutputRaw) : DEFAULT_MAX_OUTPUT;
   const showsOutput = (outputStyle === 'task' && !relay) || outputStyle === 'summary';
   const inFlight = showsOutput ? createOutputAccumulator(maxOutputBytes) : undefined;
   if (inFlight) installAbortFlush(inFlight, printedTasks);
@@ -101,7 +135,7 @@ async function cmdRun(args: string[]): Promise<void> {
     concurrency,
     cwd: flags['cwd'] as string | undefined,
     missingScript: flags['missing-script'] as 'skip' | 'error' | undefined,
-    maxOutputBytes: maxOutputRaw ? parseInt(maxOutputRaw as string, 10) : undefined,
+    maxOutputBytes: maxOutputRaw !== undefined ? maxOutputBytes : undefined,
     onOutput:
       streamWriter || inFlight || relay
         ? (project, chunk) => {
@@ -310,7 +344,7 @@ function installAbortFlush(
 }
 
 async function cmdDiscover(args: string[]): Promise<void> {
-  const { flags } = parseArgs(args);
+  const { flags } = parseArgs(args, CWD_ONLY);
   const cwd = (flags['cwd'] as string | undefined) ?? process.cwd();
 
   const projects = await discoverProjects({ cwd });
@@ -339,7 +373,7 @@ async function cmdDepVersions(args: string[]): Promise<void> {
     return;
   }
 
-  const { flags } = parseArgs(rest);
+  const { flags } = parseArgs(rest, CWD_ONLY);
   const cwd = (flags['cwd'] as string | undefined) ?? process.cwd();
 
   let changes: DepChange[];
@@ -392,7 +426,7 @@ async function cmdDevLink(args: string[]): Promise<void> {
     return;
   }
 
-  const { positional, flags } = parseArgs(rest);
+  const { positional, flags } = parseArgs(rest, DEV_LINK_FLAGS);
   const cwd = (flags['cwd'] as string | undefined) ?? process.cwd();
   const configPath = flags['config'] as string | undefined;
   const packages = positional.length > 0 ? positional : undefined;
@@ -457,7 +491,7 @@ function formatDevLinkStatus(e: DevLinkStatusEntry): string {
 }
 
 async function cmdGraph(args: string[]): Promise<void> {
-  const { flags } = parseArgs(args);
+  const { flags } = parseArgs(args, CWD_ONLY);
   const cwd = (flags['cwd'] as string | undefined) ?? process.cwd();
 
   const projects = await discoverProjects({ cwd });
