@@ -51,20 +51,30 @@ interface ProjectArtifactDescriptor {
 
 ### `npm`
 
-| Field         | Notes                                                                                             |
-| ------------- | ------------------------------------------------------------------------------------------------- |
-| `name`        | Package name, e.g. `@myorg/pkg`                                                                   |
-| `path?`       | Path to the `.tgz`. Populated by `gitflow pack` — omit when declaring in `release-artifacts.yml`. |
-| `registries?` | Registry IDs from `.publish/registries.yml`                                                       |
+| Field           | Notes                                                                                             |
+| --------------- | ------------------------------------------------------------------------------------------------- |
+| `name`          | Package name, e.g. `@myorg/pkg`                                                                   |
+| `path?`         | Path to the `.tgz`. Populated by `gitflow pack` — omit when declaring in `release-artifacts.yml`. |
+| `registries?`   | Registry IDs from `.publish/registries.yml`                                                       |
+| `floatingTags?` | `false` to publish the version only — no `latest` / `next` / channel dist-tags. See below.        |
 
 ### `docker-image`
 
-| Field                                                    | Notes                                                          |
-| -------------------------------------------------------- | -------------------------------------------------------------- |
-| `name`                                                   | Full image name including registry, e.g. `ghcr.io/owner/image` |
-| `localTag?`                                              | Local tag to push. Defaults to `name:latest`.                  |
-| `tempTag?` `finalTag?` `digest?` `registry?` `pushedAt?` | All populated by `gitflow pack` — do not set by hand.          |
-| `registries?`                                            | Registry IDs                                                   |
+| Field                                                    | Notes                                                                                  |
+| -------------------------------------------------------- | -------------------------------------------------------------------------------------- |
+| `name`                                                   | Full image name including registry, e.g. `ghcr.io/owner/image`                         |
+| `localTag?`                                              | Local tag to push. Defaults to `name:latest`.                                          |
+| `tempTag?` `finalTag?` `digest?` `registry?` `pushedAt?` | All populated by `gitflow pack` — do not set by hand.                                  |
+| `registries?`                                            | Registry IDs                                                                           |
+| `floatingTags?`                                          | `false` to push the version tag only — no `latest` / `next` / channel tags. See below. |
+
+#### Floating tags
+
+By default, publishing an `npm` or `docker-image` artifact also moves the pointers the version
+earns — the `latest` dist-tag or image tag for a release, `next` or the channel name for a
+pre-release. `floatingTags: false` opts a single artifact out of that: only the version itself is
+published, and every floating tag stays where it was. The field admits only `false`; leave it out
+for the default. Available since 1.1.9.
 
 ### `nuget`
 

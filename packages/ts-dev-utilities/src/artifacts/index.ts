@@ -1,5 +1,5 @@
 /**
- * Artifact system utilities for Phase 2 Build & Pack
+ * Artifact descriptor utilities shared with git-flow's build-pack and publish stages
  */
 
 export * from './types.js';

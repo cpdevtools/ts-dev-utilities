@@ -1,8 +1,9 @@
 # ts-dev-utilities
 
 Workspace tooling for pnpm/TypeScript monorepos: project discovery, a dependency graph, a parallel
-script runner ordered by that graph, JSONC helpers, artifact descriptors, and dependency-version
-pinning across several ecosystems — together with the `devutil` CLI that exposes them.
+script runner ordered by that graph, JSONC helpers, artifact descriptors, dependency-version
+pinning across several ecosystems, and a dev-link overlay for working against local checkouts —
+together with the `devutil` CLI that exposes them.
 
 These are general-purpose utilities. Nothing in this repository depends on releases, GitHub Actions
 or git; that belongs to [`git-flow`](https://github.com/cpdevtools/git-flow), which is built on top
@@ -10,10 +11,10 @@ of them.
 
 ## Packages
 
-| Package                            | What it is                                                        | Entry     |
-| ---------------------------------- | ----------------------------------------------------------------- | --------- |
-| `@cpdevtools/ts-dev-utilities`     | The library. Six entry points — a root barrel plus five subpaths. | `import`  |
-| `@cpdevtools/ts-dev-utilities-cli` | Ships the `devutil` binary — a thin CLI over the library.         | `devutil` |
+| Package                            | What it is                                                         | Entry     |
+| ---------------------------------- | ------------------------------------------------------------------ | --------- |
+| `@cpdevtools/ts-dev-utilities`     | The library. Seven entry points — a root barrel plus six subpaths. | `import`  |
+| `@cpdevtools/ts-dev-utilities-cli` | Ships the `devutil` binary — a thin CLI over the library.          | `devutil` |
 
 Both are published to **GitHub Packages** under the `@cpdevtools` scope, so installing them needs
 an `.npmrc` — see [Getting Started](Getting-Started).
@@ -25,6 +26,7 @@ an `.npmrc` — see [Getting Started](Getting-Started).
 | `./project`      | Find every workspace member from `pnpm-workspace.yaml`, build a dependency graph, detect cycles.  |
 | `./runner`       | Run one or more npm scripts across the whole workspace, dependency-ordered, in parallel.          |
 | `./dep-versions` | Pin one version of a dependency across `package.json`, `.csproj`, Dockerfiles and workflow files. |
+| `./dev-link`     | Repoint installed `node_modules` symlinks at local checkouts without touching the lockfile.       |
 | `./artifacts`    | Types and writer for the `*.artifact.yml` descriptors git-flow's build-pack consumes.             |
 | `./json`         | Parse JSON with comments and trailing commas (`tsconfig.json`, etc.).                             |
 | `.`              | Convenience re-exports of `globby` and `change-case`.                                             |
@@ -41,12 +43,13 @@ an `.npmrc` — see [Getting Started](Getting-Started).
 
 - [Project Discovery & Dependency Graph](Project-Discovery)
 - [Dependency Versions](Dependency-Versions)
+- [Dev-Link](Dev-Link)
 - [Artifacts](Artifacts)
 - [JSON Utilities](JSON-Utilities)
 
 ### Working on the repo
 
-- [Development](Development) — build, test, `DEV_LOCAL`, the wireit task graph.
+- [Development](Development) — build, test, `DEV_LOCAL` and dev-link, the wireit task graph.
 - [Releasing](Releasing) — the `0.0.0-MAIN` placeholder, release PRs, registries.
 - [Gotchas](Gotchas) — behaviour that is correct by design but easy to misread.
 

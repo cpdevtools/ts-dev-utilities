@@ -11,6 +11,7 @@ page that explains the behaviour.
 | `@cpdevtools/ts-dev-utilities/project`      | Discovery and dependency graph       |
 | `@cpdevtools/ts-dev-utilities/runner`       | The parallel script runner           |
 | `@cpdevtools/ts-dev-utilities/dep-versions` | Cross-ecosystem version pinning      |
+| `@cpdevtools/ts-dev-utilities/dev-link`     | Local-checkout symlink overlay       |
 | `@cpdevtools/ts-dev-utilities/artifacts`    | Artifact descriptor types and writer |
 | `@cpdevtools/ts-dev-utilities/json`         | JSONC parse/stringify                |
 
@@ -80,6 +81,33 @@ Defaults: `concurrency: Infinity`, `failFast: false`, `cwd: process.cwd()`,
 
 ---
 
+## `./dev-link` → [Dev-Link](Dev-Link)
+
+| Export                | Kind     | Signature / type                                                                                                          |
+| --------------------- | -------- | ------------------------------------------------------------------------------------------------------------------------- |
+| `DEFAULT_CONFIG_PATH` | const    | `'.publish/dev-local.yml'`                                                                                                |
+| `loadDevLinkConfig`   | function | `(cwd: string, configPath?: string) => Promise<DevLinkConfig \| null>` — `null` when absent or empty                      |
+| `linkPackages`        | function | `(config: DevLinkConfig, options?: DevLinkOptions) => Promise<DevLinkOpResult[]>` — throws under CI                       |
+| `unlinkPackages`      | function | `(config: DevLinkConfig, options?: DevLinkOptions) => Promise<DevLinkOpResult[]>`                                         |
+| `getDevLinkStatus`    | function | `(config: DevLinkConfig, options?: DevLinkOptions) => Promise<DevLinkStatusReport>`                                       |
+| `autoLink`            | function | `(options?: DevLinkOptions & { configPath?: string }) => Promise<AutoLinkResult>`                                         |
+| `isCIEnvironment`     | function | `() => boolean`                                                                                                           |
+| `DevLinkConfig`       | type     | `packages: Record<string, string>`                                                                                        |
+| `DevLinkOptions`      | type     | `cwd?`, `packages?`                                                                                                       |
+| `DevLinkOpResult`     | type     | `pkg`, `location?`, `action: DevLinkAction`, `message`                                                                    |
+| `DevLinkAction`       | type     | `'linked' \| 'already-linked' \| 'skipped' \| 'refused' \| 'restored' \| 'removed' \| 'noop'`                             |
+| `DevLinkStatusReport` | type     | `entries: DevLinkStatusEntry[]`, `resetByInstall: string[]`                                                               |
+| `DevLinkStatusEntry`  | type     | `pkg`, `location?`, `localPath`, `install: InstallState`, `checkout: CheckoutState`, `installedVersion?`, `localVersion?` |
+| `InstallState`        | type     | `'linked' \| 'published' \| 'not-installed' \| 'not-symlink'`                                                             |
+| `CheckoutState`       | type     | `'ready' \| 'missing' \| 'not-built'`                                                                                     |
+| `AutoLinkResult`      | type     | `ran: boolean`, `results: DevLinkOpResult[]`                                                                              |
+
+Defaults: `cwd: process.cwd()`, `packages`: every mapped package. `linkPackages` and
+`unlinkPackages` operate on every install root (workspace root plus each member project);
+`location` names the member for nested entries.
+
+---
+
 ## `./artifacts` → [Artifacts](Artifacts)
 
 | Export                      | Kind     | Notes                                                                                                          |
@@ -87,8 +115,8 @@ Defaults: `concurrency: Infinity`, `failFast: false`, `cwd: process.cwd()`,
 | `writeArtifact`             | function | `(descriptor: ProjectArtifactDescriptor) => Promise<void>`. Requires `ARTIFACT_OUTPUT_DIR` and `PROJECT_NAME`. |
 | `ProjectArtifactDescriptor` | type     | `project`, `artifacts: Artifact[]`                                                                             |
 | `Artifact`                  | type     | Union of the six below                                                                                         |
-| `NpmArtifact`               | type     | `type: 'npm'`                                                                                                  |
-| `DockerArtifact`            | type     | `type: 'docker-image'`                                                                                         |
+| `NpmArtifact`               | type     | `type: 'npm'`; `floatingTags?: false` opts out of `latest`/`next`/channel dist-tags                            |
+| `DockerArtifact`            | type     | `type: 'docker-image'`; `floatingTags?: false` opts out of `latest`/`next`/channel image tags                  |
 | `NuGetArtifact`             | type     | `type: 'nuget'`                                                                                                |
 | `ReleaseAttachment`         | type     | `type: 'release-attachment'`                                                                                   |
 | `DeployArtifact`            | type     | `type: 'deploy'`                                                                                               |
