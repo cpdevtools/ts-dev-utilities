@@ -3,6 +3,7 @@ import { dirname, join, relative, resolve, sep } from 'node:path';
 import { parseJson } from '../json/jsonc.js';
 import { discoverProjects } from '../project/discover.js';
 import { loadDevLinkConfig } from './config.js';
+import { linkPeers, peerStatus, unlinkPeers, type PeerManifest, type PeerSidecar } from './peers.js';
 import type {
   CheckoutState,
   DevLinkConfig,
@@ -26,12 +27,31 @@ export interface DevLinkOptions {
  */
 const SIDECAR_FILE = '.dev-link.json';
 
-interface PackageManifest {
+interface PackageManifest extends PeerManifest {
   version?: string;
   main?: string;
   bin?: string | Record<string, string>;
   exports?: unknown;
   publishConfig?: { main?: string };
+}
+
+/**
+ * Sidecar shape. Version 1 was a flat `pkg -> original target` map; version 2
+ * adds per-package peer records. A v1 file is read as v2 with empty peers, so
+ * upgrading the CLI never strands an existing overlay.
+ */
+interface Sidecar {
+  version: 2;
+  targets: Record<string, string>;
+  peers: Record<string, PeerSidecar>;
+}
+
+function emptySidecar(): Sidecar {
+  return { version: 2, targets: {}, peers: {} };
+}
+
+function peerRecord(sidecar: Sidecar, pkg: string): PeerSidecar {
+  return (sidecar.peers[pkg] ??= { entries: {}, created: [] });
 }
 
 /** CI detection matching the CLI's semantics (CI set and not ''/'false'/'0'). */
@@ -80,22 +100,33 @@ function pkgLabel(pkg: string, location: string | undefined): string {
   return location ? `${pkg} (${location})` : pkg;
 }
 
-async function readSidecar(cwd: string): Promise<Record<string, string>> {
+async function readSidecar(cwd: string): Promise<Sidecar> {
   try {
     const raw = await readFile(join(cwd, 'node_modules', SIDECAR_FILE), 'utf-8');
-    const parsed = parseJson(raw);
-    return parsed && typeof parsed === 'object' ? (parsed as Record<string, string>) : {};
+    const parsed = parseJson(raw) as Record<string, unknown> | null;
+    if (!parsed || typeof parsed !== 'object') return emptySidecar();
+    if (parsed['version'] === 2) {
+      const v2 = parsed as unknown as Partial<Sidecar>;
+      return { version: 2, targets: v2.targets ?? {}, peers: v2.peers ?? {} };
+    }
+    // v1: every value is an original target string
+    const targets: Record<string, string> = {};
+    for (const [k, v] of Object.entries(parsed)) if (typeof v === 'string') targets[k] = v;
+    return { version: 2, targets, peers: {} };
   } catch {
-    return {};
+    return emptySidecar();
   }
 }
 
-async function writeSidecar(cwd: string, entries: Record<string, string>): Promise<void> {
+async function writeSidecar(cwd: string, sidecar: Sidecar): Promise<void> {
   const file = join(cwd, 'node_modules', SIDECAR_FILE);
-  if (Object.keys(entries).length === 0) {
+  for (const [pkg, rec] of Object.entries(sidecar.peers)) {
+    if (Object.keys(rec.entries).length === 0 && rec.created.length === 0) delete sidecar.peers[pkg];
+  }
+  if (Object.keys(sidecar.targets).length === 0 && Object.keys(sidecar.peers).length === 0) {
     await rm(file, { force: true });
   } else {
-    await writeFile(file, JSON.stringify(entries, null, 2) + '\n');
+    await writeFile(file, JSON.stringify(sidecar, null, 2) + '\n');
   }
 }
 
@@ -193,9 +224,10 @@ async function linkOne(
   cwd: string,
   pkg: string,
   relPath: string,
-  sidecar: Record<string, string>,
+  sidecar: Sidecar,
   location: string | undefined,
-): Promise<DevLinkOpResult> {
+  config: DevLinkConfig,
+): Promise<DevLinkOpResult[]> {
   const nm = nmPath(root, pkg);
   const label = pkgLabel(pkg, location);
 
@@ -203,37 +235,44 @@ async function linkOne(
   try {
     entryStat = await lstat(nm);
   } catch {
-    return { pkg, location, action: 'skipped', message: `${label}: not installed — skipped` };
+    return [{ pkg, location, action: 'skipped', message: `${label}: not installed — skipped` }];
   }
   if (!entryStat.isSymbolicLink()) {
-    return {
-      pkg,
-      location,
-      action: 'skipped',
-      message: `${label}: node_modules entry is a real directory — skipped (dev-link never replaces one)`,
-    };
+    return [
+      {
+        pkg,
+        location,
+        action: 'skipped',
+        message: `${label}: node_modules entry is a real directory — skipped (dev-link never replaces one)`,
+      },
+    ];
   }
 
   const localAbs = resolve(cwd, relPath);
   const localManifest = await readManifest(localAbs);
   if (!localManifest) {
-    return { pkg, location, action: 'skipped', message: `${label}: checkout not found at ${relPath} — skipped` };
+    return [{ pkg, location, action: 'skipped', message: `${label}: checkout not found at ${relPath} — skipped` }];
   }
 
   const missing = await missingArtifacts(localAbs, localManifest);
   if (missing.length > 0) {
-    return {
-      pkg,
-      location,
-      action: 'refused',
-      message: `${label}: not built (missing ${missing.join(', ')}) — run pnpm build in ${relPath}`,
-    };
+    return [
+      {
+        pkg,
+        location,
+        action: 'refused',
+        message: `${label}: not built (missing ${missing.join(', ')}) — run pnpm build in ${relPath}`,
+      },
+    ];
   }
 
   const localReal = await realpathOrNull(localAbs);
   const currentReal = await realpathOrNull(nm);
   if (localReal !== null && currentReal === localReal) {
-    return { pkg, location, action: 'already-linked', message: `${label}: already linked → ${relPath}` };
+    // Peers are re-checked even when the package link is in place: a rebuild
+    // that wipes the checkout's dist/ takes the peer links with it.
+    const peers = await linkPeers(root, pkg, location, localReal, localManifest, config, peerRecord(sidecar, pkg));
+    return [{ pkg, location, action: 'already-linked', message: `${label}: already linked → ${relPath}` }, ...peers];
   }
 
   let previousVersion = '?';
@@ -244,20 +283,24 @@ async function linkOne(
   // Record the original store target so unlink can restore it byte-identically.
   // First-seen wins: never overwrite an existing record.
   const currentTarget = await readlink(nm);
-  if (isStoreTarget(nm, currentTarget) && !(pkg in sidecar)) {
-    sidecar[pkg] = currentTarget;
+  if (isStoreTarget(nm, currentTarget) && !(pkg in sidecar.targets)) {
+    sidecar.targets[pkg] = currentTarget;
   }
 
   await unlink(nm);
   await symlink(localAbs, nm, 'dir');
 
   const localVersion = localManifest.version ?? '?';
-  return {
+  const linked: DevLinkOpResult = {
     pkg,
     location,
     action: 'linked',
     message: `linked ${label} → ${relPath} (local ${localVersion}, was ${previousVersion})`,
   };
+  const checkoutReal = localReal ?? (await realpathOrNull(localAbs));
+  const peers =
+    checkoutReal === null ? [] : await linkPeers(root, pkg, location, checkoutReal, localManifest, config, peerRecord(sidecar, pkg));
+  return [linked, ...peers];
 }
 
 /**
@@ -277,7 +320,7 @@ export async function linkPackages(
   const cwd = options.cwd ?? process.cwd();
   const selected = selectPackages(config, options.packages);
   const roots = await getInstallRoots(cwd);
-  const sidecars = new Map<string, Record<string, string>>();
+  const sidecars = new Map<string, Sidecar>();
 
   const results: DevLinkOpResult[] = [];
   for (const [pkg, relPath] of selected) {
@@ -297,7 +340,7 @@ export async function linkPackages(
     for (const root of installedRoots) {
       if (!sidecars.has(root)) sidecars.set(root, await readSidecar(root));
       const location = relative(cwd, root) || undefined;
-      results.push(await linkOne(root, cwd, pkg, relPath, sidecars.get(root)!, location));
+      results.push(...(await linkOne(root, cwd, pkg, relPath, sidecars.get(root)!, location, config)));
     }
   }
 
@@ -314,49 +357,62 @@ export async function linkPackages(
 async function unlinkOne(
   root: string,
   pkg: string,
-  sidecar: Record<string, string>,
+  sidecar: Sidecar,
   location: string | undefined,
-): Promise<DevLinkOpResult> {
+): Promise<DevLinkOpResult[]> {
   const nm = nmPath(root, pkg);
   const label = pkgLabel(pkg, location);
+
+  // Peer links live inside the checkout, so they are undone while the package
+  // link still tells us where the checkout is.
+  const peerResults: DevLinkOpResult[] = [];
+  const peerRec = sidecar.peers[pkg];
+  if (peerRec) {
+    const checkoutReal = await realpathOrNull(nm);
+    peerResults.push(...(await unlinkPeers(pkg, location, checkoutReal, peerRec)));
+    delete sidecar.peers[pkg];
+  }
 
   let entryStat;
   try {
     entryStat = await lstat(nm);
   } catch {
-    delete sidecar[pkg];
-    return { pkg, location, action: 'noop', message: `${label}: not installed` };
+    delete sidecar.targets[pkg];
+    return [...peerResults, { pkg, location, action: 'noop', message: `${label}: not installed` }];
   }
   if (!entryStat.isSymbolicLink()) {
-    return { pkg, location, action: 'noop', message: `${label}: node_modules entry is a real directory — untouched` };
+    return [...peerResults, { pkg, location, action: 'noop', message: `${label}: node_modules entry is a real directory — untouched` }];
   }
 
   const currentTarget = await readlink(nm);
   if (isStoreTarget(nm, currentTarget)) {
-    delete sidecar[pkg];
-    return { pkg, location, action: 'noop', message: `${label}: already published` };
+    delete sidecar.targets[pkg];
+    return [...peerResults, { pkg, location, action: 'noop', message: `${label}: already published` }];
   }
 
-  const recorded = sidecar[pkg];
+  const recorded = sidecar.targets[pkg];
   if (recorded !== undefined) {
     const recordedAbs = resolve(dirname(nm), recorded);
     const stillResolves = (await realpathOrNull(recordedAbs)) !== null;
     if (stillResolves) {
       await unlink(nm);
       await symlink(recorded, nm, 'dir');
-      delete sidecar[pkg];
-      return { pkg, location, action: 'restored', message: `${label}: restored → ${recorded}` };
+      delete sidecar.targets[pkg];
+      return [...peerResults, { pkg, location, action: 'restored', message: `${label}: restored → ${recorded}` }];
     }
   }
 
   await unlink(nm);
-  delete sidecar[pkg];
-  return {
-    pkg,
-    location,
-    action: 'removed',
-    message: `${label}: link removed but the original target is gone — run pnpm install to restore the published package`,
-  };
+  delete sidecar.targets[pkg];
+  return [
+    ...peerResults,
+    {
+      pkg,
+      location,
+      action: 'removed',
+      message: `${label}: link removed but the original target is gone — run pnpm install to restore the published package`,
+    },
+  ];
 }
 
 /**
@@ -371,7 +427,7 @@ export async function unlinkPackages(
   const cwd = options.cwd ?? process.cwd();
   const selected = selectPackages(config, options.packages);
   const roots = await getInstallRoots(cwd);
-  const sidecars = new Map<string, Record<string, string>>();
+  const sidecars = new Map<string, Sidecar>();
   for (const root of roots) {
     sidecars.set(root, await readSidecar(root));
   }
@@ -385,9 +441,9 @@ export async function unlinkPackages(
         () => true,
         () => false,
       );
-      if (!hasEntry && !(pkg in sidecar)) continue;
+      if (!hasEntry && !(pkg in sidecar.targets) && !(pkg in sidecar.peers)) continue;
       const location = relative(cwd, root) || undefined;
-      perPkg.push(await unlinkOne(root, pkg, sidecar, location));
+      perPkg.push(...(await unlinkOne(root, pkg, sidecar, location)));
     }
     if (perPkg.length === 0) {
       perPkg.push({ pkg, action: 'noop', message: `${pkg}: not installed` });
@@ -411,6 +467,7 @@ async function statusOne(
   pkg: string,
   relPath: string,
   location: string | undefined,
+  config: DevLinkConfig,
 ): Promise<DevLinkStatusEntry> {
   const nm = nmPath(root, pkg);
   const localAbs = resolve(cwd, relPath);
@@ -445,6 +502,12 @@ async function statusOne(
     if (currentReal !== null && localReal !== null && currentReal === localReal) {
       install = 'linked';
       installedVersion = localVersion;
+      if (localManifest) {
+        const peers = await peerStatus(root, pkg, localReal, localManifest, config);
+        if (peers.length > 0) {
+          return { pkg, location, localPath: relPath, install, checkout, installedVersion, localVersion, peers };
+        }
+      }
     } else {
       install = 'published';
       installedVersion = currentReal ? (await readManifest(currentReal))?.version : undefined;
@@ -481,12 +544,12 @@ export async function getDevLinkStatus(
       );
       if (!hasEntry) continue;
       const location = relative(cwd, root) || undefined;
-      const entry = await statusOne(root, cwd, pkg, relPath, location);
+      const entry = await statusOne(root, cwd, pkg, relPath, location, config);
       byRootPkg.set(`${root}\0${pkg}`, entry);
       perPkg.push(entry);
     }
     if (perPkg.length === 0) {
-      const entry = await statusOne(resolve(cwd), cwd, pkg, relPath, undefined);
+      const entry = await statusOne(resolve(cwd), cwd, pkg, relPath, undefined, config);
       byRootPkg.set(`${resolve(cwd)}\0${pkg}`, entry);
       perPkg.push(entry);
     }
@@ -496,7 +559,7 @@ export async function getDevLinkStatus(
   const resetByInstall: string[] = [];
   for (const root of roots) {
     const sidecar = await readSidecar(root);
-    for (const pkg of Object.keys(sidecar)) {
+    for (const pkg of Object.keys(sidecar.targets)) {
       const entry = byRootPkg.get(`${root}\0${pkg}`);
       if (entry?.install === 'published' && !resetByInstall.includes(pkg)) {
         resetByInstall.push(pkg);

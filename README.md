@@ -133,7 +133,7 @@ devutil dev-link unlink           # restore the pnpm-installed symlinks (exit 1 
 devutil dev-link auto             # postinstall: link only when DEV_LOCAL=true and not CI; always exits 0
 ```
 
-Consumer wiring is a `"postinstall": "devutil dev-link auto"` script plus `DEV_LOCAL=true` in the development environment. The overlay is layered, not transitive — a linked checkout brings its own `node_modules`.
+Consumer wiring is a `"postinstall": "devutil dev-link auto"` script plus `DEV_LOCAL=true` in the development environment. The overlay is layered, not transitive — a linked checkout brings its own `node_modules` — except for its **peer dependencies**, which `link` points at the consumer's installed copies so singleton runtimes (`@angular/core`, `rxjs`) load once. A map entry can be `{ path, peers?, shared? }` to tune that per package.
 
 ```typescript
 import {
