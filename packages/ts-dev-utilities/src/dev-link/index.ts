@@ -12,7 +12,12 @@ export type {
   DevLinkAction,
   DevLinkConfig,
   DevLinkOpResult,
+  DevLinkPackageOptions,
+  DevLinkPeerStatus,
   DevLinkStatusEntry,
   DevLinkStatusReport,
   InstallState,
+  PeerState,
 } from './types.js';
+export { collectPeers } from './peers.js';
+export type { PeerSpec } from './peers.js';

@@ -69,7 +69,7 @@ describe('dev-link engine', () => {
 
     // Linked: absolute symlink at the checkout, sidecar holds the original target.
     const sidecar = JSON.parse(await readFile(sidecarPath(), 'utf-8'));
-    expect(sidecar[PKG]).toBe(STORE_TARGET);
+    expect(sidecar.targets[PKG]).toBe(STORE_TARGET);
 
     const unlinked = await unlinkPackages(config, { cwd: repoDir });
     expect(unlinked[0].action).toBe('restored');
@@ -85,7 +85,7 @@ describe('dev-link engine', () => {
     expect(again[0].action).toBe('already-linked');
 
     const sidecar = JSON.parse(await readFile(sidecarPath(), 'utf-8'));
-    expect(sidecar[PKG]).toBe(STORE_TARGET);
+    expect(sidecar.targets[PKG]).toBe(STORE_TARGET);
   });
 
   it('sidecar records are first-seen: relinking over a foreign target never overwrites', async () => {
@@ -96,7 +96,7 @@ describe('dev-link engine', () => {
     await linkPackages(config, { cwd: repoDir });
 
     const sidecar = JSON.parse(await readFile(sidecarPath(), 'utf-8'));
-    expect(sidecar[PKG]).toBe(STORE_TARGET);
+    expect(sidecar.targets[PKG]).toBe(STORE_TARGET);
   });
 
   it('refuses to link an unbuilt checkout, naming the missing artifact', async () => {
@@ -216,7 +216,7 @@ describe('dev-link engine', () => {
     const nestedSidecar = JSON.parse(
       await readFile(join(appDir, 'node_modules', '.dev-link.json'), 'utf-8'),
     );
-    expect(nestedSidecar[PKG]).toBe(NESTED_TARGET);
+    expect(nestedSidecar.targets[PKG]).toBe(NESTED_TARGET);
 
     const unlinked = await unlinkPackages(config, { cwd: repoDir });
     expect(unlinked.map((r) => r.action)).toEqual(['restored', 'restored']);

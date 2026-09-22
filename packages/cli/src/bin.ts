@@ -473,13 +473,18 @@ async function cmdDevLink(args: string[]): Promise<void> {
       const unlinked = report.entries.filter(
         (e) => e.install === 'published' || e.install === 'not-symlink',
       );
-      if (unlinked.length > 0 || report.resetByInstall.length > 0) process.exitCode = 1;
+      // A linked checkout whose required peer is not linked to the consumer's
+      // copy will load two instances — the failure --check exists to catch.
+      const peerProblems = report.entries.some((e) =>
+        (e.peers ?? []).some((p) => p.state === 'missing' || p.state === 'not-linked'),
+      );
+      if (unlinked.length > 0 || report.resetByInstall.length > 0 || peerProblems) process.exitCode = 1;
     }
   }
 }
 
 function formatDevLinkStatus(e: DevLinkStatusEntry): string {
-  if (e.install === 'linked') return `LINKED → ${e.localPath} (${e.localVersion ?? '?'})`;
+  if (e.install === 'linked') return `LINKED → ${e.localPath} (${e.localVersion ?? '?'})${formatPeers(e.peers)}`;
   if (e.install === 'not-installed') return 'not installed';
   if (e.install === 'not-symlink')
     return `real directory (${e.installedVersion ?? '?'}) — dev-link will not touch it`;
@@ -488,6 +493,21 @@ function formatDevLinkStatus(e: DevLinkStatusEntry): string {
   if (e.checkout === 'not-built')
     return `${published} — checkout not built (run pnpm build in ${e.localPath})`;
   return published;
+}
+
+/** `; peers: 3 linked` — with `, 1 missing (@angular/forms)` etc. when anything is not linked. */
+function formatPeers(peers: DevLinkStatusEntry['peers']): string {
+  if (!peers || peers.length === 0) return '';
+  const linked = peers.filter((p) => p.state === 'linked');
+  const parts = [`${linked.length} linked`];
+  const mismatched = linked.filter((p) => p.satisfies === false);
+  if (mismatched.length > 0)
+    parts.push(`${mismatched.length} outside declared range (${mismatched.map((p) => `${p.peer}@${p.hostVersion}`).join(', ')})`);
+  for (const state of ['not-linked', 'missing', 'optional-missing'] as const) {
+    const group = peers.filter((p) => p.state === state);
+    if (group.length > 0) parts.push(`${group.length} ${state} (${group.map((p) => p.peer).join(', ')})`);
+  }
+  return `; peers: ${parts.join(', ')}`;
 }
 
 async function cmdGraph(args: string[]): Promise<void> {
@@ -527,8 +547,10 @@ Commands:
   graph                         Print the workspace dependency graph
   dep-versions check <file>     Report version drift against a deps YAML file (exits 1 if drift found)
   dep-versions fix <file>       Apply versions from a deps YAML file to all matching project files
-  dev-link status [pkg...]      Show which mapped packages are linked to local checkouts (--check exits 1 unless all linked)
-  dev-link link [pkg...]        Repoint installed packages at local checkouts from .publish/dev-local.yml (refuses under CI)
+  dev-link status [pkg...]      Show which mapped packages are linked to local checkouts, and how their peers resolve
+                                (--check exits 1 unless all linked and every required peer resolves to this repo's copy)
+  dev-link link [pkg...]        Repoint installed packages at local checkouts from .publish/dev-local.yml (refuses under CI);
+                                inside each checkout, its peer dependencies are linked to this repo's copies
   dev-link unlink [pkg...]      Restore the original pnpm-installed symlinks
   dev-link auto                 postinstall hook: link everything mapped, only when DEV_LOCAL=true and not CI; always exits 0
 
@@ -554,7 +576,8 @@ Options (discover / graph):
 Options (dev-link):
   --config <path>          Package map location (default: .publish/dev-local.yml)
   --cwd <path>             Workspace root (default: current directory)
-  --check                  status only: exit 1 unless every installed mapped package is linked
+  --check                  status only: exit 1 unless every installed mapped package is linked and no required peer is
+                           missing or unlinked
 
 Examples:
   devutil run github.actions.test
