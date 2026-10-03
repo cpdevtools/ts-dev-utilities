@@ -36,6 +36,10 @@ export async function execScript(
         env,
         signal,
         stdio: ['ignore', 'pipe', 'pipe'],
+        // On Windows pnpm is `pnpm.cmd`, which Node will only run through a
+        // shell (a bare spawn reports ENOENT). Script names are plain
+        // identifiers, so passing them through cmd.exe is safe.
+        shell: process.platform === 'win32',
       });
     } catch {
       // Thrown synchronously when signal is already aborted (AbortError)
