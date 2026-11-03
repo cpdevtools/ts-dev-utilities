@@ -5,15 +5,15 @@ page that explains the behaviour.
 
 ## Entry points
 
-| Import path                                 | Contents                             |
-| ------------------------------------------- | ------------------------------------ |
-| `@cpdevtools/ts-dev-utilities`              | `globby`, `changeCase` re-exports    |
-| `@cpdevtools/ts-dev-utilities/project`      | Discovery and dependency graph       |
-| `@cpdevtools/ts-dev-utilities/runner`       | The parallel script runner           |
-| `@cpdevtools/ts-dev-utilities/dep-versions` | Cross-ecosystem version pinning      |
-| `@cpdevtools/ts-dev-utilities/dev-link`     | Local-checkout symlink overlay       |
-| `@cpdevtools/ts-dev-utilities/artifacts`    | Artifact descriptor types and writer |
-| `@cpdevtools/ts-dev-utilities/json`         | JSONC parse/stringify                |
+| Import path                                 | Contents                                         |
+| ------------------------------------------- | ------------------------------------------------ |
+| `@cpdevtools/ts-dev-utilities`              | `globby`, `changeCase` re-exports                |
+| `@cpdevtools/ts-dev-utilities/project`      | Discovery and dependency graph                   |
+| `@cpdevtools/ts-dev-utilities/runner`       | The parallel script runner                       |
+| `@cpdevtools/ts-dev-utilities/dep-versions` | Cross-ecosystem version pinning                  |
+| `@cpdevtools/ts-dev-utilities/dev-link`     | Local-checkout symlink overlay                   |
+| `@cpdevtools/ts-dev-utilities/artifacts`    | Artifact descriptor types and writer             |
+| `@cpdevtools/ts-dev-utilities/json`         | JSONC parse, stringify, comment-preserving edits |
 
 There is no all-in-one barrel; the root entry is only the re-exports.
 
@@ -41,6 +41,7 @@ changeCase.pascalCase('my-service'); // 'MyService'
 | Export                    | Kind     | Signature / type                                                                                                      |
 | ------------------------- | -------- | --------------------------------------------------------------------------------------------------------------------- |
 | `discoverProjects`        | function | `(options?: ProjectDiscoveryOptions) => Promise<Project[]>`                                                           |
+| `parseWorkspacePatterns`  | function | `(yamlText: string) => { patterns: string[]; ignore: string[] } \| undefined` — pure `pnpm-workspace.yaml` → globs    |
 | `buildDependencyGraph`    | function | `(projects: ProjectInfo[], workspaceProjects?: Set<string>) => DependencyGraph`                                       |
 | `DependencyGraph`         | class    | `addProject`, `addDependency`, `getNode`, `getAllNodes`, `getAllProjectNames`, `detectCycle`, `getTopologicalBatches` |
 | `Project`                 | type     | `packageJsonPath`, `directory`, `packageJson`, `name`, `dependencies?`, `devDependencies?`                            |
@@ -126,11 +127,14 @@ Defaults: `cwd: process.cwd()`, `packages`: every mapped package. `linkPackages`
 
 ## `./json` → [JSON Utilities](JSON-Utilities)
 
-| Export             | Kind     | Signature                                                          |
-| ------------------ | -------- | ------------------------------------------------------------------ |
-| `parseJson`        | function | `(text: string) => unknown` — comments and trailing commas allowed |
-| `stringifyJson`    | function | `(value: unknown, options?: StringifyOptions) => string`           |
-| `StringifyOptions` | type     | `spaces?` (default `2`), `insertFinalNewline?` (default `true`)    |
+| Export             | Kind     | Signature                                                                                                               |
+| ------------------ | -------- | ----------------------------------------------------------------------------------------------------------------------- |
+| `parseJson`        | function | `(text: string) => unknown` — comments and trailing commas allowed                                                      |
+| `stringifyJson`    | function | `(value: unknown, options?: StringifyOptions) => string`                                                                |
+| `StringifyOptions` | type     | `spaces?` (default `2`), `insertFinalNewline?` (default `true`)                                                         |
+| `updateJsonText`   | function | `(text: string, update: (value: any) => unknown, options?: JsonEditOptions) => string` — diff-based, keeps comments     |
+| `setJsonValue`     | function | `(text: string, path: (string \| number)[], value: unknown, options?: JsonEditOptions) => string` — `undefined` removes |
+| `JsonEditOptions`  | type     | `spaces?` (default: detected from the text, else `2`)                                                                   |
 
 ---
 

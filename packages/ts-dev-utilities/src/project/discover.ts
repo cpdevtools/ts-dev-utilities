@@ -6,25 +6,30 @@ import { parseJson } from '../json/jsonc.js';
 import type { Project, ProjectDiscoveryOptions, PackageJson } from './types.js';
 
 /**
- * Derive package.json glob patterns from a `pnpm-workspace.yaml` at `cwd`.
+ * Derive package.json glob patterns from the text of a `pnpm-workspace.yaml`.
  *
  * Member globs (e.g. `packages/*`) become `packages/*\/package.json`, which
  * scopes discovery to actual workspace members and excludes the workspace root.
  * Negated entries (`!path`) are collected as ignore patterns. Returns
- * `undefined` when no workspace file is present so callers can fall back to the
- * default recursive search.
+ * `undefined` when there is no usable `packages` array so callers can fall back
+ * to the default recursive search.
+ *
+ * Pure: it takes the file's text rather than reading it, so it works against a
+ * virtual file tree as well as the disk.
+ *
+ * @param yamlText - Contents of a `pnpm-workspace.yaml`
+ * @returns Discovery patterns and ignore patterns, or `undefined`
+ *
+ * @example
+ * ```typescript
+ * parseWorkspacePatterns('packages:\n  - "packages/*"\n  - "!packages/junk"\n');
+ * // { patterns: ['packages/*\/package.json'], ignore: ['packages/junk/package.json'] }
+ * ```
  */
-async function readWorkspacePatterns(
-  cwd: string,
-): Promise<{ patterns: string[]; ignore: string[] } | undefined> {
-  let raw: string;
-  try {
-    raw = await readFile(join(cwd, 'pnpm-workspace.yaml'), 'utf-8');
-  } catch {
-    return undefined;
-  }
-
-  const parsed = parseYaml(raw) as { packages?: unknown } | null;
+export function parseWorkspacePatterns(
+  yamlText: string,
+): { patterns: string[]; ignore: string[] } | undefined {
+  const parsed = parseYaml(yamlText) as { packages?: unknown } | null;
   const entries = parsed?.packages;
   if (!Array.isArray(entries)) return undefined;
 
@@ -38,6 +43,22 @@ async function readWorkspacePatterns(
   }
 
   return patterns.length > 0 ? { patterns, ignore } : undefined;
+}
+
+/**
+ * Read `pnpm-workspace.yaml` at `cwd` and derive discovery patterns from it.
+ * Returns `undefined` when there is no workspace file.
+ */
+async function readWorkspacePatterns(
+  cwd: string,
+): Promise<{ patterns: string[]; ignore: string[] } | undefined> {
+  let raw: string;
+  try {
+    raw = await readFile(join(cwd, 'pnpm-workspace.yaml'), 'utf-8');
+  } catch {
+    return undefined;
+  }
+  return parseWorkspacePatterns(raw);
 }
 
 /**

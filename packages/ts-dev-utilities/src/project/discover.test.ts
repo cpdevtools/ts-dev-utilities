@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { mkdir, writeFile, rm, symlink } from 'node:fs/promises';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
-import { discoverProjects } from './discover.js';
+import { discoverProjects, parseWorkspacePatterns } from './discover.js';
 
 describe('discoverProjects', () => {
   let testDir: string;
@@ -129,5 +129,27 @@ describe('discoverProjects', () => {
     expect(projects[0].packageJson.name).toBe('valid');
     expect(warn).toHaveBeenCalledOnce();
     warn.mockRestore();
+  });
+});
+
+describe('parseWorkspacePatterns', () => {
+  it('should turn member globs into package.json globs', () => {
+    expect(parseWorkspacePatterns('packages:\n  - "packages/*"\n  - "tools/cli/"\n')).toEqual({
+      patterns: ['packages/*/package.json', 'tools/cli/package.json'],
+      ignore: [],
+    });
+  });
+
+  it('should collect negated entries as ignore patterns', () => {
+    expect(parseWorkspacePatterns('packages:\n  - "packages/*"\n  - "!packages/junk"\n')).toEqual({
+      patterns: ['packages/*/package.json'],
+      ignore: ['packages/junk/package.json'],
+    });
+  });
+
+  it('should return undefined without a packages array', () => {
+    expect(parseWorkspacePatterns('')).toBeUndefined();
+    expect(parseWorkspacePatterns('catalog:\n  react: ^19\n')).toBeUndefined();
+    expect(parseWorkspacePatterns('packages: []\n')).toBeUndefined();
   });
 });
