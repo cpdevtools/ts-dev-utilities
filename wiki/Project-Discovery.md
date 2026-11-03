@@ -3,6 +3,7 @@
 ```ts
 import {
   discoverProjects,
+  parseWorkspacePatterns,
   buildDependencyGraph,
   DependencyGraph,
 } from '@cpdevtools/ts-dev-utilities/project';
@@ -50,6 +51,10 @@ This has two consequences worth noting:
 
 If there is no `pnpm-workspace.yaml`, or it has no usable `packages` array, discovery falls back to
 a recursive `**/package.json` search.
+
+The conversion itself is exported as `parseWorkspacePatterns(yamlText)`: it takes the file's text
+and returns `{ patterns, ignore }`, or `undefined` when there is no usable `packages` array. Use it
+when the workspace file is not on disk — in an Angular schematics `Tree`, for example.
 
 ### Behaviour details
 
